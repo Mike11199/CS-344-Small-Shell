@@ -189,7 +189,7 @@ expand(char const *word)
       // REFERENCE https://edstem.org/us/courses/38065/discussion/3028257 - using printf with types that lack format specifiers
       pid_t mypid = getpid();  //ref canvas exp process concepts & states
       char pid_string[100];
-      sprintf(pid_string, "%jd\n", (intmax_t) mypid); //https://linux.die.net/man/3/sprintf
+      sprintf(pid_string, "%jd\n", (intmax_t) mypid); //https://linux.die.net/man/3/sprintf  ref ED discussion above this is type conversion 
       //build_str("<PID>", NULL);
       build_str(pid_string, NULL);
       //printf("%s\n", pid_string);
@@ -197,9 +197,31 @@ expand(char const *word)
    // else if (c == '$') build_str("<PID>", NULL);
     else if (c == '?') build_str("<STATUS>", NULL);
     else if (c == '{') {
-      build_str("<Parameter: ", NULL);
-      build_str(start + 2, end - 1);
-      build_str(">", NULL);
+     // build_str("<Parameter: ", NULL);
+      //char * env_variable; //https://linux.die.net/man/3/getenv
+      size_t str_len = (end-1) - (start+2) + 1;  // from skeleton code plus 1 for null terminator
+      //printf("%zu", str_len); //reference https://linux.die.net/man/3/printf z is for size_t and u is for unsigned decimal
+      
+      size_t i;
+      char env_variable[str_len-1];  
+      // reference modified strcpy https://linux.die.net/man/3/strncpy to get string.  start and end pointers set by param scan function in skeleton code
+      for (i = 0; i < str_len-1; i++) {
+        env_variable[i] = *(start + 2 + i);  
+      }
+      env_variable[str_len-1] = '\0';
+      //printf("%s", env_variable);
+      
+      //env_variable = getenv(build_str(start + 2, end -1));  //this takes the build_str already from skeleton code and puts it in getenv();
+      char * actual_env_variable;
+      //printf("%s\n", env_variable);
+      actual_env_variable = getenv(env_variable);
+      //printf("%s", actual_env_variable);
+      if (actual_env_variable != NULL) build_str(actual_env_variable, NULL);
+      else build_str("",NULL);
+      //printf("%s\n", env_variable);
+      //build_str(start + 2, end - 1); //this prints word between { } from testing it
+      
+      //build_str(">", NULL);
     }
     pos = end;
     c = param_scan(pos, &start, &end);
