@@ -36,7 +36,8 @@ int main(int argc, char *argv[])
   char *line = NULL;
   size_t n = 0;
   for (;;) {
-//prompt:;
+  
+ 
     /* TODO: Manage background processes */
 
     /* TODO: prompt */
@@ -57,12 +58,24 @@ int main(int argc, char *argv[])
     size_t nwords = wordsplit(line);
     for (size_t i = 0; i < nwords; ++i) {
       fprintf(stderr, "Word %zu: %s  -->  ", i, words[i]);
+
+      if (strcmp(words[i], "cd") == 0) goto change_directory;
+
       char *exp_word = expand(words[i]);
       free(words[i]);
       words[i] = exp_word;
       fprintf(stderr, "%s\n", words[i]);
     }
   }
+
+  
+
+  change_directory:
+    printf("test change directory\n");
+    return 0;
+   
+
+  
 }
 
 char *words[MAX_WORDS] = {0};
@@ -197,7 +210,12 @@ expand(char const *word)
       //printf("%s\n", pid_string);
     }
    // else if (c == '$') build_str("<PID>", NULL);
-    else if (c == '?') build_str("<STATUS>", NULL);
+    else if (c == '?') {
+      //char * exit_status = getenv("$?");
+      //if (exit_status != NULL) build_str(exit_status, NULL);     
+      //else build_str("",NULL);
+      build_str("<STATUS>", NULL);
+    }
     else if (c == '{') {
      // build_str("<Parameter: ", NULL);
       //char * env_variable; //https://linux.die.net/man/3/getenv
