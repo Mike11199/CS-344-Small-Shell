@@ -41,8 +41,10 @@ int main(int argc, char *argv[])
 
     /* TODO: prompt */
     char *prompt = getenv("PS1");
+    if (prompt != NULL) printf("%s", prompt);  // print PS1
+    else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
 //    char *expanded_prompt = expand(prompt);
-    printf("%s", prompt);
+    //printf("%s", prompt);
    // printf("%s", expanded_prompt);
 
 
