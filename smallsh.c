@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdint.h> // reference https://edstem.org/us/courses/38065/discussion/3028257
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -141,6 +142,10 @@ build_str(char const *start, char const *end)
   static size_t base_len = 0;
   static char *base = 0;
 
+
+  //printf("end: %c\n", *end);
+
+
   if (!start) {
     /* Reset; new base string, return old one */
     char *ret = base;
@@ -152,6 +157,9 @@ build_str(char const *start, char const *end)
    * If end is NULL, append whole start string to base string.
    * Returns a newly allocated string that the caller must free.
    */
+  //printf("start: %c\n", *start); 
+  //printf("end: %c\n", *end);
+
   size_t n = end ? end - start : strlen(start);
   size_t newsize = sizeof *base *(base_len + n + 1);
   void *tmp = realloc(base, newsize);
@@ -165,7 +173,7 @@ build_str(char const *start, char const *end)
 }
 
 /* Expands all instances of $! $$ $? and ${param} in a string 
- * Returns a newly allocated string that the caller must free
+ * Returns a newly allocated string that the caller must free:
  */
 char *
 expand(char const *word)
@@ -177,7 +185,16 @@ expand(char const *word)
   build_str(pos, start);
   while (c) {
     if (c == '!') build_str("<BGPID>", NULL);
-    else if (c == '$') build_str("<PID>", NULL);
+    else if (c == '$') {
+      // REFERENCE https://edstem.org/us/courses/38065/discussion/3028257 - using printf with types that lack format specifiers
+      pid_t mypid = getpid();  //ref canvas exp process concepts & states
+      char pid_string[100];
+      sprintf(pid_string, "%jd\n", (intmax_t) mypid); //https://linux.die.net/man/3/sprintf
+      //build_str("<PID>", NULL);
+      build_str(pid_string, NULL);
+      //printf("%s\n", pid_string);
+    }
+   // else if (c == '$') build_str("<PID>", NULL);
     else if (c == '?') build_str("<STATUS>", NULL);
     else if (c == '{') {
       build_str("<Parameter: ", NULL);
