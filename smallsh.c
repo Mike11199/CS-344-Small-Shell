@@ -18,8 +18,12 @@ char * expand(char const *word);
 
 int main(int argc, char *argv[])
 {
+  
   FILE *input = stdin;
   char *input_fn = "(stdin)";
+
+  // INTERACTIVE MODE - if one argument, read from STDIN
+  // NON-INTERACTIVE MODE - if two arguments, read from a file
   if (argc == 2) {
     input_fn = argv[1];
     input = fopen(input_fn, "re");
@@ -35,6 +39,12 @@ int main(int argc, char *argv[])
     /* TODO: Manage background processes */
 
     /* TODO: prompt */
+    char *prompt = getenv("PS1");
+//    char *expanded_prompt = expand(prompt);
+    printf("%s", prompt);
+   // printf("%s", expanded_prompt);
+
+
     if (input == stdin) {
 
     }
@@ -70,7 +80,7 @@ size_t wordsplit(char const *line) {
   for (; *c;) {
     if (wind == MAX_WORDS) break;
     /* read a word */
-    if (*c == '#') break;
+    if (*c == '#') break;   // to ignore comments and everything after
     for (;*c && !isspace(*c); ++c) {
       if (*c == '\\') ++c;
       void *tmp = realloc(words[wind], sizeof **words * (wlen + 2));
