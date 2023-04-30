@@ -44,23 +44,26 @@ prompt:
  
     /* TODO: Manage background processes */
 
-    /* TODO: prompt */
-    char *prompt = getenv("PS1");
-    if (prompt != NULL) printf("%s", prompt);  // print PS1
-    else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
-//    char *expanded_prompt = expand(prompt);
-    //printf("%s", prompt);
-   // printf("%s", expanded_prompt);
 
 
+    //INTERACTIVE MODE
     if (input == stdin) {
-
+      /* COMPLETED TODO: prompt  */
+      char *prompt = getenv("PS1");
+      if (prompt != NULL) printf("%s", prompt);  // print PS1
+      else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
+      //    char *expanded_prompt = expand(prompt);
     }
+
+
     ssize_t line_len = getline(&line, &n, input);
     if (line_len < 0) err(1, "%s", input_fn);
     
+    // #2 word splitting - given function by professor - completed
     size_t nwords = wordsplit(line);
     
+
+    // ***********BLOCK FOR IMPLEMENTING CD FUNCTION**************
     if (nwords > 0 && strcmp(words[0], "cd") == 0){
       //printf("test change directory\n");
       int cd_result;
@@ -78,23 +81,37 @@ prompt:
       }
       goto prompt;
     }
+    //************END BLOCK IMPLEMENTING CD FUNCTION
 
+
+    // ** BLOCK TO EXPAND ALL WORDS - 2**************
     for (size_t i = 0; i < nwords; ++i) {
-      fprintf(stderr, "Word %zu: %s  -->  ", i, words[i]);
-
-      
-
+      //fprintf(stderr, "Word %zu: %s  -->  ", i, words[i]);     
       char *exp_word = expand(words[i]);
       free(words[i]);
       words[i] = exp_word;
-      fprintf(stderr, "%s\n", words[i]);
+     // fprintf(stderr, "%s\n", words[i]);
     }   
+    // ** END BLOCK TO EXPAND ALL WORD***********
     
+
+
+
+    //printf("print words again test");
+    for (size_t i=0; i< nwords; ++i) {
+      fprintf(stderr, "%s\n", words[i]);
+
+      
+
+    }
+
+
 
    
   } //end infinite loop
 } // end main function
   
+
 
 
 char *words[MAX_WORDS] = {0};
