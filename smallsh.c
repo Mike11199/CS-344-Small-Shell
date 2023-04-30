@@ -35,6 +35,10 @@ int main(int argc, char *argv[])
 
   char *line = NULL;
   size_t n = 0;
+
+
+
+prompt:
   for (;;) {
   
  
@@ -56,27 +60,42 @@ int main(int argc, char *argv[])
     if (line_len < 0) err(1, "%s", input_fn);
     
     size_t nwords = wordsplit(line);
+    
+    if (nwords > 0 && strcmp(words[0], "cd") == 0){
+      //printf("test change directory\n");
+      int cd_result;
+      if (nwords >2) errx(1,"too many arguments\n");
+      if (nwords >1) {
+        char *exp_cd_path = expand(words[1]);
+        cd_result = chdir(exp_cd_path);
+        if (cd_result != 0) errx(1,"error changing folder\n");  
+       // char curr_dir[1000];
+       // getcwd(curr_dir, sizeof(curr_dir));  //https://linux.die.net/man/3/getcwd
+      }
+      else {
+        cd_result = chdir(getenv("HOME"));
+        if (cd_result != 0) errx(1, "error changing folder\n");
+      }
+      goto prompt;
+    }
+
     for (size_t i = 0; i < nwords; ++i) {
       fprintf(stderr, "Word %zu: %s  -->  ", i, words[i]);
 
-      if (strcmp(words[i], "cd") == 0) goto change_directory;
+      
 
       char *exp_word = expand(words[i]);
       free(words[i]);
       words[i] = exp_word;
       fprintf(stderr, "%s\n", words[i]);
-    }
-  }
+    }   
+    
 
-  
-
-  change_directory:
-    printf("test change directory\n");
-    return 0;
    
-
+  } //end infinite loop
+} // end main function
   
-}
+
 
 char *words[MAX_WORDS] = {0};
 
