@@ -82,10 +82,10 @@ prompt:
 
 
     //printf("print words again test");
-    for (size_t i=0; i< nwords; ++i) {
+  
       
 
-      fprintf(stderr, "%s\n", words[i]);
+     // fprintf(stderr, "%s\n", words[i]);
 
 
       // ***********BLOCK FOR IMPLEMENTING CD FUNCTION***************
@@ -124,6 +124,12 @@ prompt:
       int childStatus;
       pid_t spawnPid;
       char *argv_test[] = {"ls", "-al", NULL};
+      char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
+      bool redirect_input = false;
+      bool redirect_output_append = false;
+      bool redirect_output_truncate = false;
+      char * redirect_file_name = NULL;
+
 
 
       if (nwords>0){
@@ -146,33 +152,13 @@ prompt:
 
       // in the child process
       case 0:
-        printf("in child process\n");
-        printf("CHILD(%d) running command\n", getpid());
+       // printf("in child process\n");
+       // printf("CHILD(%d) running command\n", getpid());
        // char *testargv[nwords]; 
-        bool redirect_input = false;
-        bool redirect_output_append = false;
-        bool redirect_output_truncate = false;
-        char * redirect_file_name = NULL;
-
-        char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
-        
-
-
+             
         for (size_t i=0; i < (nwords+1); i++) {
             argv_for_execvp[i] = NULL;
          }
-
-         for (size_t i=0; i < (nwords+1); i++) {
-            if (argv_for_execvp[i] == NULL){
-              printf("NULL");
-            }
-            else {
-              printf("%s\n", argv_for_execvp[i]);
-            }
-        }
-        
-       // int num_of_arguments;
-
 
         //Need to construct array of arguments for the non-built in command and remove any redirection operators and their associated filename args
         for (size_t i=0; i < nwords; i++) {
@@ -210,39 +196,43 @@ prompt:
           else {
             
             argv_for_execvp[i] = words[i];  // if not redirection or filename after, put that in the array of arguments for commands and command itself is testargv[0]
-            printf("word inserted into arguments array is %s\n", argv_for_execvp[i]); 
+         //   printf("word inserted into arguments array is %s\n", argv_for_execvp[i]); 
             
           }
          }
 
-        //argv_for_execvp[nwords+1] = NULL;
+        //***** TEST TO PRINT OUT ARGUMENTS OF THE ARRAY WHICH SHOULD BE NULL TERMINATED************
+//         printf("test - printing out arguments array for execvp\n");
+         
+//         for (size_t i=0; i < (nwords+1); i++) {
+//            if (argv_for_execvp[i] == NULL){
+//              printf("NULL\n");
+//            }
+//            else {
+//              printf("%s\n", argv_for_execvp[i]);
+//            }
+//        }
+        ///**************END TEST*********************************************************************
 
-       // printf("number of words is %zu\n", nwords);
-          //testargv[i] = words[i];
-          //printf("%s", words[i]);
-          //printf("%s", testargv[i]); 
-      //  printf("printing commands for execvp\n");
+        // argv_for_execvp[nwords+1] = NULL;
 
-        for (size_t i=0; i < (nwords+1); i++) {
-
-            //printf("%s\n", argv_for_execvp[i]);
-       //     if (argv_for_execvp[i] == NULL) printf("NULL\n");
-        }
-       // printf("%s\n", argv_for_execvp[nwords+2]);
-
-
-       // char *argv_test[] = {"ls", "-al", NULL};
-
-      //  printf("%s\n",argv_for_execvp[0]);
-       // printf("%s\n", argv_for_execvp[1]);
-       // printf("%s\n", argv_for_execvp[2]);
-       // execvp(argv_for_execvp[0], argv_for_execvp);  //run program with array for argumnets where we removed redirections and associated files
+        // printf("number of words is %zu\n", nwords);
+        // testargv[i] = words[i];
+        // printf("%s", words[i]);
+        // printf("%s", testargv[i]); 
+        // printf("printing commands for execvp\n");
+        // char *argv_test[] = {"ls", "-al", NULL};
+        // execvp(argv_for_execvp[0], argv_for_execvp);  //run program with array for argumnets where we removed redirections and associated files
         
-       // printf("%s", argv_test[0]);
-       // printf("%s", *argv_test);
-        execvp(argv_test[0], argv_test);       //this WORKS!!
-        //execv(argv_test[0], argv_test);
-        //printf("did we make it here?\n");
+        // printf("%s", argv_test[0]);
+        // printf("%s", *argv_test);
+        
+
+        // execvp(argv_test[0], argv_test);       //this WORKS TO RUN HARDCODED LS COMMAND!!!!!
+        execvp(argv_for_execvp[0], argv_for_execvp);                                       
+        
+        // execv(argv_test[0], argv_test);
+        // printf("did we make it here?\n");   //NEVER WORKS AS CHILD IS REPLACED BY EXECVP - NORMAL
 
         perror("error with execvp in child\n!");
         exit(2);
@@ -250,10 +240,10 @@ prompt:
       
       //in the parent process
       default:
-        printf("in parent process\n");
+      //  printf("in parent process: %d\n", getpid());
         //wait for child to TERMINATE with a blocking wait - test
         spawnPid = waitpid(spawnPid, &childStatus, 0);
-        printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
+     //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
         break;
 
       
@@ -261,7 +251,7 @@ prompt:
      //***********END BLOCK FOR EXECUTING A NON-BUILT IN PROGRAM*******************************
 
 
-    }
+    
 
 
 
