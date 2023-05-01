@@ -27,12 +27,13 @@ int exit_status_last_foreground_cmd = INT_MIN; //shell variable for $?
 bool sig_int_received = false;
 
 void sigint_handler(int sig) {
-
-    printf("\n");
-    errno = 0; //reset error
-    clearerr(stdin); //clear stdin
-    sig_int_received = true;       
-    clearerr(input);
+   
+  //THIS DIDN'T WORK - CAUSED CTRL C TO HANG ON GET LINE UNTIL OTHER INPUT
+  // printf("\n");
+   // errno = 0; //reset error
+  //  clearerr(stdin); //clear stdin
+   // sig_int_received = true;       
+   // clearerr(input);
     //goto prompt;   
 }; //reference instructions for smallsh for SIGINT (ctrl-c);
 
@@ -78,8 +79,9 @@ prompt:
       // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
       struct sigaction SIGINT_action = {0};
       SIGINT_action.sa_handler = sigint_handler; //this if func that does nothing above
-      sigfillset(&SIGINT_action.sa_mask);
-      SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
+      //sigfillset(&SIGINT_action.sa_mask);
+      //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
+
       sigaction(SIGINT, &SIGINT_action, NULL);
 
       char *prompt = getenv("PS1");
@@ -89,9 +91,23 @@ prompt:
     }
 
     
-   // while (!sig_int_received && ) {
+      // while (!sig_int_received && ) {
       ssize_t line_len = getline(&line, &n, input);
-      if (line_len < 0) err(1, "%s", input_fn);
+      //if (line_len < 0) err(1, "%s", input_fn);
+      
+      //THIS ALLOWS US TO RESTART IF WE SEND SIGINT WHILE IN INTERACTIVE MODE
+      if (input == stdin) {
+          if (line_len < 0) {
+            clearerr(stdin);
+            printf("\n");
+            goto prompt;
+          }
+      }
+      else {
+          if (line_len <0) err(1, "%s", input_fn);
+      }
+
+      //if (line_len == 0) goto prompt;
  //   }
 
     
