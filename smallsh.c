@@ -11,6 +11,7 @@
 #include <sys/wait.h> //reference Exploration - Process API - Monitoring Child Processes - waitpid       
 #include <stdbool.h> // include otherwise error on bool type
 #include <limits.h>   // ref https://learn.microsoft.com/en-us/cpp/c-language/cpp-integer-limits?view=msvc-170        
+#include <fcntl.h> // for O_WRONLY, etc. reference canvas exploration - processes and IO
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -148,7 +149,7 @@ prompt:
       bool redirect_output_append = false;
       bool redirect_output_truncate = false;
       char * redirect_file_name = NULL;
-
+      int out_target;  //output file for redirection file descriptor
 
 
       if (nwords>0){
@@ -202,6 +203,18 @@ prompt:
             redirect_output_truncate = true;
             if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
             redirect_file_name = words[i+1];
+            int out_target = open(redirect_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+            if (out_target == -1){
+              perror("target failed to open"); //ref canvas exploration process and i/o
+              exit(1);
+            }
+            //redirect output stdout to target
+            int result = dup2(out_target, 1); // 1 is stdout and reference canvas exploration processes and i/o for code
+            if (result == -1){
+              perror("error with dup2!\n");
+              exit(2);
+            }                                       
+
             i++;
  
           }
