@@ -128,7 +128,7 @@ prompt:
         spawnPid = fork();
       }
  
-      char *testargv[nwords];
+      char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
       //char *testargv[] = {words[0], "-al", NULL};
 
       switch(spawnPid){
@@ -147,12 +147,19 @@ prompt:
         bool redirect_output_append = false;
         bool redirect_output_truncate = false;
         char * redirect_file_name = NULL;
-       
+
+
+        for (size_t i=0; i < (nwords+1); i++) {
+            argv_for_execvp[i] = NULL;
+        }
+
+
         //Need to construct array of arguments for the non-built in command and remove any redirection operators and their associated filename args
-        for (size_t i=0; i< nwords; ++i) {
+        for (size_t i=0; i < nwords; i++) {
 
           printf("number of words is %zu\n", nwords);
-          printf("i is %zu\n", i); 
+          printf("i is %zu\n", i);
+          printf("word from word array is %s\n", words[i]);
 
           if (strcmp(words[i], "<") == 0){
            // printf("%zu", nwords);
@@ -180,13 +187,34 @@ prompt:
             redirect_file_name = words[i+1];
             i++; 
           }
+          else {
+            
+            argv_for_execvp[i] = words[i];  // if not redirection or filename after, put that in the array of arguments for commands and command itself is testargv[0]
+            printf("word inserted into arguments array is %s\n", argv_for_execvp[i]); 
+            
+          }
+         }
 
-          printf("number of words is %zu\n", nwords);
+        //argv_for_execvp[nwords+1] = NULL;
+
+        printf("number of words is %zu\n", nwords);
           //testargv[i] = words[i];
           //printf("%s", words[i]);
           //printf("%s", testargv[i]); 
+        printf("printing commands for execvp\n");
 
-        execvp(words[0], testargv);
+        for (size_t i=0; i < (nwords+1); i++) {
+
+            printf("%s\n", argv_for_execvp[i]);
+            if (argv_for_execvp[i] == NULL) printf("NULL\n");
+        }
+        printf("%s\n", argv_for_execvp[nwords+2]);
+
+
+      //  printf("%s\n",argv_for_execvp[0]);
+       // printf("%s\n", argv_for_execvp[1]);
+       // printf("%s\n", argv_for_execvp[2]);
+        execvp(argv_for_execvp[0], argv_for_execvp);  //run program with array for argumnets where we removed redirections and associated files
         perror("error with execvp in child\n!");
         exit(2);
         break;
@@ -198,7 +226,7 @@ prompt:
         spawnPid = waitpid(spawnPid, &childStatus, 0); 
 
 
-      }
+      
       }
      //***********END BLOCK FOR EXECUTING A NON-BUILT IN PROGRAM*******************************
 
