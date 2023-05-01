@@ -10,6 +10,7 @@
 #include <stdint.h> // reference https://edstem.org/us/courses/38065/discussion/3028257
 #include <sys/wait.h> //reference Exploration - Process API - Monitoring Child Processes - waitpid       
 #include <stdbool.h> // include otherwise error on bool type
+#include <limits.h>   // ref https://learn.microsoft.com/en-us/cpp/c-language/cpp-integer-limits?view=msvc-170        
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -18,6 +19,9 @@
 char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
+
+pid_t PID_most_recent_background_process = INT_MIN; //shell variable for $!
+int exit_status_last_foreground_cmd = INT_MIN; //shell variable for $?
 
 int main(int argc, char *argv[])
 {
@@ -243,6 +247,8 @@ prompt:
       //  printf("in parent process: %d\n", getpid());
         //wait for child to TERMINATE with a blocking wait - test
         spawnPid = waitpid(spawnPid, &childStatus, 0);
+        PID_most_recent_background_process = spawnPid;  //update shell variable to be updated to PID of the child process
+                                                        
      //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
         break;
 
@@ -383,7 +389,18 @@ expand(char const *word)
   build_str(NULL, NULL);
   build_str(pos, start);
   while (c) {
-    if (c == '!') build_str("<BGPID>", NULL);
+    if (c == '!'){
+      //update with most recent background process which is shell variable $!
+      //build_str("<BGPID>", NULL);
+      if (PID_most_recent_background_process == INT_MIN) {
+        //build_str("<BGPID>",NULL);
+        build_str("", NULL);
+      }else {
+        char pid_string_bg[100];
+        sprintf(pid_string_bg, "%jd\n", (intmax_t) PID_most_recent_background_process);
+        build_str(pid_string_bg, NULL);
+      }
+    }
     else if (c == '$') {
       // REFERENCE https://edstem.org/us/courses/38065/discussion/3028257 - using printf with types that lack format specifiers
       pid_t mypid = getpid();  //ref canvas exp process concepts & states
@@ -398,7 +415,15 @@ expand(char const *word)
       //char * exit_status = getenv("$?");
       //if (exit_status != NULL) build_str(exit_status, NULL);     
       //else build_str("",NULL);
-      build_str("<STATUS>", NULL);
+      if (exit_status_last_foreground_cmd == INT_MIN) {
+        //build_str("<STATUS>", NULL);
+        build_str("0",NULL);
+      } else {
+        char string_last_exit_status_fg[100];
+        sprintf(string_last_exit_status_fg, "%jd\n", (intmax_t) exit_status_last_foreground_cmd);
+        build_str(string_last_exit_status_fg, NULL);
+      }
+   
     }
     else if (c == '{') {
      // build_str("<Parameter: ", NULL);
