@@ -150,6 +150,7 @@ prompt:
       bool redirect_output_truncate = false;
       char * redirect_file_name = NULL;
       int out_target;  //output file for redirection file descriptor
+      int in_target; //input file to replace stdin                       
 
 
       if (nwords>0){
@@ -191,14 +192,26 @@ prompt:
            // printf("%zu", nwords);
             if (redirect_input) errx(1,"multiple redirects of same type\n");
             redirect_input = true;
-            printf("open specified file for reading on STDIN!\n");
+            //printf("open specified file for reading on STDIN!\n");
             if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n"); 
             redirect_file_name = words[i+1];
+            int in_target = open(redirect_file_name, O_RDONLY);  //https://linux.die.net/man/3/open
+            if (in_target == -1){
+              perror("target failed to open"); //ref canvas exploration process and i/o
+              exit(1);
+            }
+            //redirect output stdout to target
+            int result = dup2(in_target, 0); // 0 is stdin and reference canvas exploration processes and i/o for code
+            if (result == -1){
+              perror("error with dup2 redirecting stdin!\n");
+              exit(2);
+            }      
+
             i++;
 
           }
           else if (strcmp(words[i], ">") == 0){
-            printf("open specified file for writing on STDOUT - possibly only in child later! - TRUNCATE MODE\n");
+           // printf("open specified file for writing on STDOUT - possibly only in child later! - TRUNCATE MODE\n");
             if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
             redirect_output_truncate = true;
             if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
@@ -219,7 +232,7 @@ prompt:
  
           }
           else if (strcmp(words[i], ">>") == 0){
-            printf("open specified file for writing on STDIN - possibly only in child later! - APPEND MODE\n");
+           // printf("open specified file for writing on STDIN - possibly only in child later! - APPEND MODE\n");
             if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
             if ( ( i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
             redirect_file_name = words[i+1];
