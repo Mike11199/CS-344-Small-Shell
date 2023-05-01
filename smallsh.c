@@ -63,25 +63,7 @@ prompt:
     size_t nwords = wordsplit(line);
     
 
-    // ***********BLOCK FOR IMPLEMENTING CD FUNCTION**************
-    if (nwords > 0 && strcmp(words[0], "cd") == 0){
-      //printf("test change directory\n");
-      int cd_result;
-      if (nwords >2) errx(1,"too many arguments\n");
-      if (nwords >1) {
-        char *exp_cd_path = expand(words[1]);
-        cd_result = chdir(exp_cd_path);
-        if (cd_result != 0) errx(1,"error changing folder\n");  
-       // char curr_dir[1000];
-       // getcwd(curr_dir, sizeof(curr_dir));  //https://linux.die.net/man/3/getcwd
-      }
-      else {
-        cd_result = chdir(getenv("HOME"));
-        if (cd_result != 0) errx(1, "error changing folder\n");
-      }
-      goto prompt;
-    }
-    //************END BLOCK IMPLEMENTING CD FUNCTION
+
 
 
     // ** BLOCK TO EXPAND ALL WORDS - 2**************
@@ -99,9 +81,40 @@ prompt:
 
     //printf("print words again test");
     for (size_t i=0; i< nwords; ++i) {
+      
+
       fprintf(stderr, "%s\n", words[i]);
 
+
+      // ***********BLOCK FOR IMPLEMENTING CD FUNCTION***************
+      if (nwords > 0 && strcmp(words[0], "cd") == 0){
+        //printf("test change directory\n");
+        int cd_result;
+        if (nwords >2) errx(1,"too many arguments\n");
+        if (nwords >1) {
+          char *exp_cd_path = expand(words[1]);
+          cd_result = chdir(exp_cd_path);
+          if (cd_result != 0) errx(1,"error changing folder\n");  
+          // char curr_dir[1000];
+          // getcwd(curr_dir, sizeof(curr_dir));  //https://linux.die.net/man/3/getcwd
+        }
+        else {
+          cd_result = chdir(getenv("HOME"));
+          if (cd_result != 0) errx(1, "error changing folder\n");
+        }
+        goto prompt;
+      }
+      //************END BLOCK IMPLEMENTING CD FUNCTION**************
       
+
+      
+      //***BLOCK FOR IMPLEMENTING BUILT IN EXIT FUNCTION************
+      if (nwords > 0 && strcmp(words[0], "exit") == 0){
+        if (nwords > 2) errx(1, "too many arguments\n");
+        exit(0);
+      }
+      //***********END BLOCK IMPLEMENTING EXIT FUNCTION*************
+
 
     }
 
