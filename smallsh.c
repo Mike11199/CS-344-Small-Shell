@@ -77,12 +77,15 @@ prompt:
 
       // Reference Canvas exploration - Signal Handling API - Example - Custom Handler for SIGINT for next 5 lines of code to ignore SIGINT
       // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
-      struct sigaction SIGINT_action = {0};
+      struct sigaction SIGINT_action = {0}, ignore_action = {0};
       SIGINT_action.sa_handler = sigint_handler; //this if func that does nothing above
       //sigfillset(&SIGINT_action.sa_mask);
       //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
-
+     
+      ignore_action.sa_handler = SIG_IGN; //reference exploration - canvas signal handling api
       sigaction(SIGINT, &SIGINT_action, NULL);
+      sigaction(SIGTSTP, &ignore_action, NULL);
+      
 
       char *prompt = getenv("PS1");
       if (prompt != NULL) printf("%s", prompt);  // print PS1
