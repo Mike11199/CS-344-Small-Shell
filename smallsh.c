@@ -151,7 +151,7 @@ prompt:
       char * redirect_file_name = NULL;
       int out_target;  //output file for redirection file descriptor
       int in_target; //input file to replace stdin                       
-
+      bool run_in_background = false;
 
       if (nwords>0){
         spawnPid = fork();
@@ -249,6 +249,10 @@ prompt:
             }     
             i++; 
           }
+          else if ((strcmp(words[i], "&") == 0) && (i == (nwords-1))){
+           //   printf("background operator is last word - child!\n");
+              //run_in_background = true;
+          }
           else {
             
             argv_for_execvp[i] = words[i];  // if not redirection or filename after, put that in the array of arguments for commands and command itself is testargv[0]
@@ -298,9 +302,18 @@ prompt:
       default:
       //  printf("in parent process: %d\n", getpid());
         //wait for child to TERMINATE with a blocking wait - test
-        spawnPid = waitpid(spawnPid, &childStatus, 0);
-        PID_most_recent_background_process = spawnPid;  //update shell variable to be updated to PID of the child process
-                                                        
+         if ((strcmp(words[nwords-1], "&") == 0)){
+             // printf("background operator is last word - parent!\n");
+              run_in_background = true;
+         }
+        if (run_in_background){
+          spawnPid = waitpid(spawnPid, &childStatus, WNOHANG); //reference Canvas Process - API - monitoring child processes
+          PID_most_recent_background_process = spawnPid;  //update shell variable to be updated to PID of the child process; this is $!
+        } else{
+          spawnPid = waitpid(spawnPid, &childStatus, 0);
+          exit_status_last_foreground_cmd = WEXITSTATUS(childStatus); //ref linux.die.net/man/2/waitpid ; this is $?
+        }
+                                                               
      //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
         break;
 
