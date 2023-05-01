@@ -133,8 +133,7 @@ prompt:
        goto prompt;
       }
  
-      char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
-      //char *testargv[] = {words[0], "-al", NULL};
+            //char *testargv[] = {words[0], "-al", NULL};
 
       switch(spawnPid){
 
@@ -155,10 +154,24 @@ prompt:
         bool redirect_output_truncate = false;
         char * redirect_file_name = NULL;
 
+        char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
+        
+
 
         for (size_t i=0; i < (nwords+1); i++) {
             argv_for_execvp[i] = NULL;
+         }
+
+         for (size_t i=0; i < (nwords+1); i++) {
+            if (argv_for_execvp[i] == NULL){
+              printf("NULL");
+            }
+            else {
+              printf("%s\n", argv_for_execvp[i]);
+            }
         }
+        
+       // int num_of_arguments;
 
 
         //Need to construct array of arguments for the non-built in command and remove any redirection operators and their associated filename args
@@ -172,14 +185,14 @@ prompt:
            // printf("%zu", nwords);
             if (redirect_input) errx(1,"multiple redirects of same type\n");
             redirect_input = true;
-            //printf("open specified file for reading on STDIN!\n");
+            printf("open specified file for reading on STDIN!\n");
             if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n"); 
             redirect_file_name = words[i+1];
             i++;
 
           }
           else if (strcmp(words[i], ">") == 0){
-            //printf("open specified file for writing on STDOUT - possibly only in child later! - TRUNCATE MODE\n");
+            printf("open specified file for writing on STDOUT - possibly only in child later! - TRUNCATE MODE\n");
             if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
             redirect_output_truncate = true;
             if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
@@ -188,7 +201,7 @@ prompt:
  
           }
           else if (strcmp(words[i], ">>") == 0){
-            //printf("open specified file for writing on STDIN - possibly only in child later! - APPEND MODE\n");
+            printf("open specified file for writing on STDIN - possibly only in child later! - APPEND MODE\n");
             if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
             if ( ( i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
             redirect_file_name = words[i+1];
@@ -197,7 +210,7 @@ prompt:
           else {
             
             argv_for_execvp[i] = words[i];  // if not redirection or filename after, put that in the array of arguments for commands and command itself is testargv[0]
-       //     printf("word inserted into arguments array is %s\n", argv_for_execvp[i]); 
+            printf("word inserted into arguments array is %s\n", argv_for_execvp[i]); 
             
           }
          }
@@ -212,7 +225,7 @@ prompt:
 
         for (size_t i=0; i < (nwords+1); i++) {
 
-            printf("%s\n", argv_for_execvp[i]);
+            //printf("%s\n", argv_for_execvp[i]);
        //     if (argv_for_execvp[i] == NULL) printf("NULL\n");
         }
        // printf("%s\n", argv_for_execvp[nwords+2]);
@@ -225,11 +238,11 @@ prompt:
        // printf("%s\n", argv_for_execvp[2]);
        // execvp(argv_for_execvp[0], argv_for_execvp);  //run program with array for argumnets where we removed redirections and associated files
         
-        printf("%s", argv_test[0]);
-        printf("%s", *argv_test);
-        execvp(argv_test[0], argv_test);
+       // printf("%s", argv_test[0]);
+       // printf("%s", *argv_test);
+        execvp(argv_test[0], argv_test);       //this WORKS!!
         //execv(argv_test[0], argv_test);
-        printf("did we make it here?\n");
+        //printf("did we make it here?\n");
 
         perror("error with execvp in child\n!");
         exit(2);
