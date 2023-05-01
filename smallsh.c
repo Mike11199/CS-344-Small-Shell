@@ -8,6 +8,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h> // reference https://edstem.org/us/courses/38065/discussion/3028257
+#include <sys/wait.h> //reference Exploration - Process API - Monitoring Child Processes - waitpid       
+#include <stdbool.h> // include otherwise error on bool type
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -114,6 +116,91 @@ prompt:
         exit(0);
       }
       //***********END BLOCK IMPLEMENTING EXIT FUNCTION*************
+
+
+      // ***** BLOCK FOR EXECUTING NEW PROCESS THAT IS NOT A BUILD IN PROGRAM ****************
+     // reference Canvas Exploration - Process API - Executing a New Program
+     
+      int childStatus;
+      pid_t spawnPid;
+
+      if (nwords>0){
+        spawnPid = fork();
+      }
+ 
+      char *testargv[nwords];
+      //char *testargv[] = {words[0], "-al", NULL};
+
+      switch(spawnPid){
+
+      // if process failed
+      case -1:
+        perror("fork() creating a new child has failed!!\n");
+        exit(1);
+
+
+      // in the child process
+      case 0:
+        printf("in child process\n");
+       // char *testargv[nwords]; 
+        bool redirect_input = false;
+        bool redirect_output_append = false;
+        bool redirect_output_truncate = false;
+        char * redirect_file_name = NULL;
+       
+        //Need to construct array of arguments for the non-built in command and remove any redirection operators and their associated filename args
+        for (size_t i=0; i< nwords; ++i) {
+
+          printf("number of words is %zu\n", nwords);
+          printf("i is %zu\n", i); 
+
+          if (strcmp(words[i], "<") == 0){
+           // printf("%zu", nwords);
+            if (redirect_input) errx(1,"multiple redirects of same type\n");
+            redirect_input = true;
+            //printf("open specified file for reading on STDIN!\n");
+            if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n"); 
+            redirect_file_name = words[i+1];
+            i++;
+
+          }
+          else if (strcmp(words[i], ">") == 0){
+            //printf("open specified file for writing on STDOUT - possibly only in child later! - TRUNCATE MODE\n");
+            if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
+            redirect_output_truncate = true;
+            if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
+            redirect_file_name = words[i+1];
+            i++;
+ 
+          }
+          else if (strcmp(words[i], ">>") == 0){
+            //printf("open specified file for writing on STDIN - possibly only in child later! - APPEND MODE\n");
+            if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
+            if ( ( i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
+            redirect_file_name = words[i+1];
+            i++; 
+          }
+
+          printf("number of words is %zu\n", nwords);
+          //testargv[i] = words[i];
+          //printf("%s", words[i]);
+          //printf("%s", testargv[i]); 
+
+        execvp(words[0], testargv);
+        perror("error with execvp in child\n!");
+        exit(2);
+        break;
+      
+      //in the parent process
+      default:
+        printf("in parent process\n");
+        //wait for child to TERMINATE with a blocking wait - test
+        spawnPid = waitpid(spawnPid, &childStatus, 0); 
+
+
+      }
+      }
+     //***********END BLOCK FOR EXECUTING A NON-BUILT IN PROGRAM*******************************
 
 
     }
