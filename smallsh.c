@@ -20,15 +20,32 @@
 char *words[MAX_WORDS];
 size_t wordsplit(char const *line);
 char * expand(char const *word);
+FILE *input;
 
 pid_t PID_most_recent_background_process = INT_MIN; //shell variable for $!
 int exit_status_last_foreground_cmd = INT_MIN; //shell variable for $?
+bool sig_int_received = false;
+
+void sigint_handler(int sig) {
+
+    printf("\n");
+    errno = 0; //reset error
+    clearerr(stdin); //clear stdin
+    sig_int_received = true;       
+    clearerr(input);
+    //goto prompt;   
+}; //reference instructions for smallsh for SIGINT (ctrl-c);
 
 int main(int argc, char *argv[])
 {
-  
-  FILE *input = stdin;
-  char *input_fn = "(stdin)";
+ 
+  input = stdin;
+ //FILE *input = stdin;
+ char *input_fn = "(stdin)";
+
+//restart: 
+ 
+ 
 
   // INTERACTIVE MODE - if one argument, read from STDIN
   // NON-INTERACTIVE MODE - if two arguments, read from a file
@@ -56,20 +73,37 @@ prompt:
     //INTERACTIVE MODE
     if (input == stdin) {
       /* COMPLETED TODO: prompt  */
+
+      // Reference Canvas exploration - Signal Handling API - Example - Custom Handler for SIGINT for next 5 lines of code to ignore SIGINT
+      // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
+      struct sigaction SIGINT_action = {0};
+      SIGINT_action.sa_handler = sigint_handler; //this if func that does nothing above
+      sigfillset(&SIGINT_action.sa_mask);
+      SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
+      sigaction(SIGINT, &SIGINT_action, NULL);
+
       char *prompt = getenv("PS1");
       if (prompt != NULL) printf("%s", prompt);  // print PS1
       else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
       //    char *expanded_prompt = expand(prompt);
     }
 
+    
+   // while (!sig_int_received && ) {
+      ssize_t line_len = getline(&line, &n, input);
+      if (line_len < 0) err(1, "%s", input_fn);
+ //   }
 
-    ssize_t line_len = getline(&line, &n, input);
-    if (line_len < 0) err(1, "%s", input_fn);
     
     // #2 word splitting - given function by professor - completed
     size_t nwords = wordsplit(line);
     
 
+ // if (sig_int_received) {
+//        sig_int_received = false;
+//        clearerr(input);
+ //      goto prompt;
+ //  }
 
 
 
