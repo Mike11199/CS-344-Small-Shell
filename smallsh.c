@@ -117,7 +117,22 @@ prompt:
       //***BLOCK FOR IMPLEMENTING BUILT IN EXIT FUNCTION************
       if (nwords > 0 && strcmp(words[0], "exit") == 0){
         if (nwords > 2) errx(1, "too many arguments\n");
-        exit(0);
+        if (nwords ==1) {
+          
+          if (exit_status_last_foreground_cmd == INT_MIN) {
+             exit(0);
+          }
+          else {
+             exit(exit_status_last_foreground_cmd);
+          }
+        }
+        else {
+            for ( size_t i=0; i< strlen(words[1]); i++){
+               if (!isdigit(words[1][i])) errx(1,"error gave exit function a non-digit!\n");
+            }
+            exit(atoi(words[1]));
+        }
+        
       }
       //***********END BLOCK IMPLEMENTING EXIT FUNCTION*************
 
