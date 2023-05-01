@@ -127,6 +127,9 @@ prompt:
       if (nwords>0){
         spawnPid = fork();
       }
+      else {
+       goto prompt;
+      }
  
       char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
       //char *testargv[] = {words[0], "-al", NULL};
@@ -137,6 +140,7 @@ prompt:
       case -1:
         perror("fork() creating a new child has failed!!\n");
         exit(1);
+        break;
 
 
       // in the child process
@@ -211,10 +215,16 @@ prompt:
         printf("%s\n", argv_for_execvp[nwords+2]);
 
 
+        char *argv_test[] = {"/bin/ls", "-al", NULL};
+
       //  printf("%s\n",argv_for_execvp[0]);
        // printf("%s\n", argv_for_execvp[1]);
        // printf("%s\n", argv_for_execvp[2]);
-        execvp(argv_for_execvp[0], argv_for_execvp);  //run program with array for argumnets where we removed redirections and associated files
+       // execvp(argv_for_execvp[0], argv_for_execvp);  //run program with array for argumnets where we removed redirections and associated files
+       // execvp(argv_test[0], argv_test);
+        execv(argv_test[0], argv_test);
+        printf("did we make it here?\n");
+
         perror("error with execvp in child\n!");
         exit(2);
         break;
@@ -224,7 +234,7 @@ prompt:
         printf("in parent process\n");
         //wait for child to TERMINATE with a blocking wait - test
         spawnPid = waitpid(spawnPid, &childStatus, 0); 
-
+        break;
 
       
       }
