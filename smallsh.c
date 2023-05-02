@@ -68,6 +68,25 @@ prompt:
   
  
     /* TODO: Manage background processes */
+    // reference PAGE 544 of Linux Programming Interface michael kerrisk chapter 26 - waitpid()
+    pid_t child_process;
+    int bg_child_status;
+
+    // ref linux.die.net/man/2/waitpid/
+    //WIFSTOPPED(status) returns true if the child process was stopped by delivery of a signal; 
+    //this is only possible if the call was done using WUNTRACED or when the child is being traced (see ptrace(2)).
+
+    while ((child_process = waitpid(0, &bg_child_status, WUNTRACED)) > 0){
+        if(WIFEXITED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Exit status %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status));
+        else if(WIFSIGNALED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status));
+        else if (WIFSTOPPED(bg_child_status)) {
+            //https://man7.org/linux/man-pages/man2/kill.2.htmlC
+            fprintf(stderr, "Child process %jd stopped. Continuing. \n", (intmax_t) child_process);
+            kill(child_process, SIGCONT); 
+        }
+
+    };  //ref programming interface pg 544 - if 0 wait for any child in smae process group as the caller
+    printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
 
 
 
@@ -78,13 +97,13 @@ prompt:
       // Reference Canvas exploration - Signal Handling API - Example - Custom Handler for SIGINT for next 5 lines of code to ignore SIGINT
       // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
       struct sigaction SIGINT_action = {0}, ignore_action = {0};
-      SIGINT_action.sa_handler = sigint_handler; //this if func that does nothing above
+      SIGINT_action.sa_handler = sigint_handler; //this is func that does nothing above
       //sigfillset(&SIGINT_action.sa_mask);
       //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
      
       ignore_action.sa_handler = SIG_IGN; //reference exploration - canvas signal handling api
-      sigaction(SIGINT, &SIGINT_action, NULL);
-      sigaction(SIGTSTP, &ignore_action, NULL);
+      sigaction(SIGINT, &SIGINT_action, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
+      sigaction(SIGTSTP, &ignore_action, NULL);  // this so ctrl + z does nothing
       
 
       char *prompt = getenv("PS1");
@@ -299,6 +318,7 @@ prompt:
             if (result == -1){
               perror("error with dup2!\n");
               exit(2);
+
             }     
             i++; 
           }
@@ -356,8 +376,9 @@ prompt:
       //  printf("in parent process: %d\n", getpid());
         //wait for child to TERMINATE with a blocking wait - test
          if ((strcmp(words[nwords-1], "&") == 0)){
-             // printf("background operator is last word - parent!\n");
+            // printf("background operator is last word - parent!\n");
               run_in_background = true;
+
          }
         if (run_in_background){
           spawnPid = waitpid(spawnPid, &childStatus, WNOHANG); //reference Canvas Process - API - monitoring child processes
