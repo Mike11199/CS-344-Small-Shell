@@ -404,6 +404,8 @@ prompt:
            if (run_in_background){
           // RUN IN THE BACKGROUND
               spawnPid_bg = waitpid(spawnPid, &childStatus, WNOHANG); //reference Canvas Process - API - monitoring child processes
+                                                                      
+              //can't use spawnPid_bg as if non-blocking wait won't return right pid until finished, so grab the pid from fork which will be child in parent                                                                     
               PID_most_recent_background_process = spawnPid;  //update shell variable to be updated to PID of the child process; this is $!
            } 
            else{
