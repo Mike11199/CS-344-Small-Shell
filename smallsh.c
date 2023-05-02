@@ -228,6 +228,13 @@ prompt:
       int out_target;  //output file for redirection file descriptor
       int in_target; //input file to replace stdin                       
       bool run_in_background = false;
+      pid_t spawnPid_fg;
+      pid_t spawnPid_bg;
+
+      //these two lines for resetting signals in child
+       struct sigaction default_action = {0};
+       default_action.sa_handler = SIG_DFL; //this is func that does nothing above 
+ 
 
       if (nwords>0){
         spawnPid = fork();
@@ -252,7 +259,17 @@ prompt:
        // printf("in child process\n");
        // printf("CHILD(%d) running command\n", getpid());
        // char *testargv[nwords]; 
-             
+            
+        //reference exploration canvas - signal handling api - sa handler - reset signals for child pocess - 5 pts
+        //signal(SIGINT, SIG_DFL);
+       // signal(SIGTSTP, SIG_DFL);
+       //reference man7.org/linux/man-pages/man2/sigaction.2.html
+   // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
+
+        sigaction(SIGINT, &default_action, NULL);   
+        sigaction(SIGTSTP, &default_action, NULL);  
+
+
         for (size_t i=0; i < (nwords+1); i++) {
             argv_for_execvp[i] = NULL;
          }
@@ -377,24 +394,42 @@ prompt:
       
       //in the parent process
       default:
-      //  printf("in parent process: %d\n", getpid());
-        //wait for child to TERMINATE with a blocking wait - test
-         if ((strcmp(words[nwords-1], "&") == 0)){
+           //  printf("in parent process: %d\n", getpid());
+           //wait for child to TERMINATE with a blocking wait - test
+           if ((strcmp(words[nwords-1], "&") == 0)){
             // printf("background operator is last word - parent!\n");
               run_in_background = true;
 
-         }
-        if (run_in_background){
-          spawnPid = waitpid(spawnPid, &childStatus, WNOHANG); //reference Canvas Process - API - monitoring child processes
-          PID_most_recent_background_process = spawnPid;  //update shell variable to be updated to PID of the child process; this is $!
-        } else{
-          spawnPid = waitpid(spawnPid, &childStatus, 0);
-          exit_status_last_foreground_cmd = WEXITSTATUS(childStatus); //ref linux.die.net/man/2/waitpid ; this is $?
-        }
+           }
+           if (run_in_background){
+          // RUN IN THE BACKGROUND
+              spawnPid_bg = waitpid(spawnPid, &childStatus, WNOHANG); //reference Canvas Process - API - monitoring child processes
+              PID_most_recent_background_process = spawnPid;  //update shell variable to be updated to PID of the child process; this is $!
+           } 
+           else{
+          
+          //PERFORM BLOCKING WAIT TO RUN IN FOREGREOUND
+           spawnPid_fg = waitpid(spawnPid, &childStatus, 0);
+          
+          // if not in background and stopped - send signal to continue
+          if (WIFSTOPPED(childStatus)) {
+            //https://man7.org/linux/man-pages/man2/kill.2.htmlC
+            fprintf(stderr, "Child process %jd stopped. Continuing. \n", (intmax_t) spawnPid_fg);
+            kill(spawnPid_fg, SIGCONT); 
+            PID_most_recent_background_process = spawnPid_fg; // set $! to pid as if was a background command
+          }
+          // if stopped by a signal, set 
+          if(WIFSIGNALED(childStatus)) {
+           // fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) spawnPid, WEXITSTATUS(childStatus));
+            exit_status_last_foreground_cmd = (WEXITSTATUS(childStatus)+128);   // if stopped by signal - set shell variable $? to exit status of waited for command plus value of 128
+          }
+          if(!WIFSIGNALED(childStatus)){
+            exit_status_last_foreground_cmd = WEXITSTATUS(childStatus); // if not stopped by signal - set shell variable $? to exit status of waited for fg command
+          }
                                                                
-     //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
-        break;
-
+           //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
+          break;
+        }
       
       }
      //***********END BLOCK FOR EXECUTING A NON-BUILT IN PROGRAM*******************************
