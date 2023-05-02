@@ -76,9 +76,11 @@ prompt:
     //WIFSTOPPED(status) returns true if the child process was stopped by delivery of a signal; 
     //this is only possible if the call was done using WUNTRACED or when the child is being traced (see ptrace(2)).
 
-    while ((child_process = waitpid(0, &bg_child_status, WUNTRACED)) > 0){
+    while ((child_process = waitpid(0, &bg_child_status, WUNTRACED | WNOHANG)) > 0){  //ref pg 551 options can be or'd together
         if(WIFEXITED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Exit status %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status));
         else if(WIFSIGNALED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status));
+       
+        //need WUNTRACEd to detect stopped processes!!!
         else if (WIFSTOPPED(bg_child_status)) {
             //https://man7.org/linux/man-pages/man2/kill.2.htmlC
             fprintf(stderr, "Child process %jd stopped. Continuing. \n", (intmax_t) child_process);
@@ -86,7 +88,7 @@ prompt:
         }
 
     };  //ref programming interface pg 544 - if 0 wait for any child in smae process group as the caller
-    printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
+   // printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
 
 
 
