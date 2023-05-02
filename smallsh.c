@@ -67,6 +67,7 @@ prompt:
   for (;;) {
   
  
+    //*********************************************CHECK BACKGROUND PROCESSES ON EACH LOOP HERE******************
     /* TODO: Manage background processes */
     // reference PAGE 544 of Linux Programming Interface michael kerrisk chapter 26 - waitpid()
     pid_t child_process;
@@ -89,6 +90,7 @@ prompt:
 
     };  //ref programming interface pg 544 - if 0 wait for any child in smae process group as the caller
    // printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
+   //********************END CHECKING BACKGROUND PROCESSES **********************************************************
 
 
 
