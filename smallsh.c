@@ -93,6 +93,7 @@ prompt:
    //********************END CHECKING BACKGROUND PROCESSES **********************************************************
 
 
+     struct sigaction SIGINT_action = {0}, ignore_action = {0}, old_SIGINT, old_SIGTSTP;
 
     //INTERACTIVE MODE
     if (input == stdin) {
@@ -100,15 +101,14 @@ prompt:
 
       // Reference Canvas exploration - Signal Handling API - Example - Custom Handler for SIGINT for next 5 lines of code to ignore SIGINT
       // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
-      struct sigaction SIGINT_action = {0}, ignore_action = {0};
       SIGINT_action.sa_handler = sigint_handler; //this is func that does nothing above
       //sigfillset(&SIGINT_action.sa_mask);
       //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
      
       ignore_action.sa_handler = SIG_IGN; //reference exploration - canvas signal handling api
-      sigaction(SIGINT, &SIGINT_action, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
-      sigaction(SIGTSTP, &ignore_action, NULL);  // this so ctrl + z does nothing
-      
+      sigaction(SIGINT, &SIGINT_action, &old_SIGINT);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
+      //sigaction(SIGTSTP, &ignore_action, &old_SIGTSTP);  // this so ctrl + z does nothing
+      sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP);  // this so ctrl + z does nothing; have to do this and not above line or infinite getline loop 
 
       char *prompt = getenv("PS1");
       if (prompt != NULL) printf("%s", prompt);  // print PS1
@@ -232,9 +232,11 @@ prompt:
       pid_t spawnPid_bg;
 
       //these two lines for resetting signals in child
-       struct sigaction default_action = {0};
+       struct sigaction default_action = {0}, SIGSTP_action={0};
        default_action.sa_handler = SIG_DFL; //this is func that does nothing above 
- 
+
+       //struct sigaction reset_action = {0};
+       //reset_action.sa_handler = SIG_DFL;
 
       if (nwords>0){
         spawnPid = fork();
@@ -266,9 +268,19 @@ prompt:
        //reference man7.org/linux/man-pages/man2/sigaction.2.html
    // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
 
-        sigaction(SIGINT, &default_action, NULL);   
-        sigaction(SIGTSTP, &default_action, NULL);  
+        sigaction(SIGINT, &old_SIGINT, NULL);   
+        //sigaction(SIGTSTP, &default_action, NULL);  
+        //struct sigaction SIGINT_action = {0};
+        //SIGINT_action.sa_handler = sigint_handler; 
+      //  SIGSTP_action.sa_flags = SA_RESTART;
 
+        //SIGSTP_action.sa_handler = SIG_DFL; //this is func that does nothing above
+      //sigfillset(&SIGINT_action.sa_mask);
+      //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error          
+       // SIGINT_action.sa_handler = sigint_handler;
+
+        sigaction(SIGTSTP, &old_SIGTSTP, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
+        //sigaction(SIGTSTP, &SIGINT_action, NULL);        
 
         for (size_t i=0; i < (nwords+1); i++) {
             argv_for_execvp[i] = NULL;
@@ -416,14 +428,17 @@ prompt:
           // if not in background and stopped - send signal to continue
           if (WIFSTOPPED(childStatus)) {
             //https://man7.org/linux/man-pages/man2/kill.2.htmlC
-            fprintf(stderr, "Child process %jd stopped. Continuing. \n", (intmax_t) spawnPid_fg);
+            //errno = 0;
+           fprintf(stderr, "signaled stopped!!\n"); 
+            fprintf(stderr, "Child process %jd stopped - parent. Continuing. \n", (intmax_t) spawnPid_fg);
             kill(spawnPid_fg, SIGCONT); 
             PID_most_recent_background_process = spawnPid_fg; // set $! to pid as if was a background command
           }
           // if stopped by a signal, set 
           if(WIFSIGNALED(childStatus)) {
            // fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) spawnPid, WEXITSTATUS(childStatus));
-            exit_status_last_foreground_cmd = (WEXITSTATUS(childStatus)+128);   // if stopped by signal - set shell variable $? to exit status of waited for command plus value of 128
+           fprintf(stderr, "signaled!!%i\n", WTERMSIG(childStatus));
+            exit_status_last_foreground_cmd = (WTERMSIG(childStatus)+128);   // if stopped by signal - set shell variable $? to exit status of waited for command plus value of 128
           }
           if(!WIFSIGNALED(childStatus)){
             exit_status_last_foreground_cmd = WEXITSTATUS(childStatus); // if not stopped by signal - set shell variable $? to exit status of waited for fg command
