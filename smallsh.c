@@ -78,8 +78,8 @@ prompt:
     //this is only possible if the call was done using WUNTRACED or when the child is being traced (see ptrace(2)).
 
     while ((child_process = waitpid(0, &bg_child_status, WUNTRACED | WNOHANG)) > 0){  //ref pg 551 options can be or'd together
-        if(WIFEXITED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Exit status %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status));
-        else if(WIFSIGNALED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status));
+        if(WIFEXITED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Exit status %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status)); //exit status
+        else if(WIFSIGNALED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) child_process, WTERMSIG(bg_child_status)); //signal #
        
         //need WUNTRACEd to detect stopped processes!!!
         else if (WIFSTOPPED(bg_child_status)) {
@@ -91,8 +91,8 @@ prompt:
     };  //ref programming interface pg 544 - if 0 wait for any child in smae process group as the caller
    // printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
    //********************END CHECKING BACKGROUND PROCESSES **********************************************************
-
-
+     
+ 
      struct sigaction SIGINT_action = {0}, ignore_action = {0}, old_SIGINT, old_SIGTSTP;
 
     //INTERACTIVE MODE
@@ -409,10 +409,10 @@ prompt:
            //  printf("in parent process: %d\n", getpid());
            //wait for child to TERMINATE with a blocking wait - test
            if ((strcmp(words[nwords-1], "&") == 0)){
-            // printf("background operator is last word - parent!\n");
+              // printf("background operator is last word - parent!\n");
               run_in_background = true;
-
            }
+
            if (run_in_background){
           // RUN IN THE BACKGROUND
               spawnPid_bg = waitpid(spawnPid, &childStatus, WNOHANG); //reference Canvas Process - API - monitoring child processes
@@ -422,31 +422,35 @@ prompt:
            } 
            else{
           
-          //PERFORM BLOCKING WAIT TO RUN IN FOREGREOUND
-           spawnPid_fg = waitpid(spawnPid, &childStatus, 0);
+               //PERFORM BLOCKING WAIT TO RUN IN FOREGREOUND
+              spawnPid_fg = waitpid(spawnPid, &childStatus, WUNTRACED);
           
-          // if not in background and stopped - send signal to continue
-          if (WIFSTOPPED(childStatus)) {
-            //https://man7.org/linux/man-pages/man2/kill.2.htmlC
-            //errno = 0;
-           fprintf(stderr, "signaled stopped!!\n"); 
-            fprintf(stderr, "Child process %jd stopped - parent. Continuing. \n", (intmax_t) spawnPid_fg);
-            kill(spawnPid_fg, SIGCONT); 
-            PID_most_recent_background_process = spawnPid_fg; // set $! to pid as if was a background command
-          }
-          // if stopped by a signal, set 
-          if(WIFSIGNALED(childStatus)) {
-           // fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) spawnPid, WEXITSTATUS(childStatus));
-           fprintf(stderr, "signaled!!%i\n", WTERMSIG(childStatus));
-            exit_status_last_foreground_cmd = (WTERMSIG(childStatus)+128);   // if stopped by signal - set shell variable $? to exit status of waited for command plus value of 128
-          }
-          if(!WIFSIGNALED(childStatus)){
-            exit_status_last_foreground_cmd = WEXITSTATUS(childStatus); // if not stopped by signal - set shell variable $? to exit status of waited for fg command
-          }
-                                                               
-           //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
-          break;
-        }
+              //if not in background and stopped - send signal to continue
+              if (WIFSTOPPED(childStatus)) {
+                //https://man7.org/linux/man-pages/man2/kill.2.htmlC
+                //errno = 0;
+                printf("stopped\n");
+                fprintf(stderr, "signaled stopped!!\n"); 
+                //fprintf(stderr, "Child process %jd stopped - parent. Continuing. \n", (intmax_t) spawnPid_fg);
+                kill(spawnPid_fg, SIGCONT); 
+                PID_most_recent_background_process = spawnPid_fg; // set $! to pid as if was a background command
+              }
+              
+              if(WIFSIGNALED(childStatus)) {
+              // fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) spawnPid, WEXITSTATUS(childStatus));
+               // fprintf(stderr, "signaled!!%i\n", WTERMSIG(childStatus));
+                printf("signaled!\n");
+                printf("child terminated due to signal: %d\n", WTERMSIG(childStatus));
+                exit_status_last_foreground_cmd = (WTERMSIG(childStatus)+128);   // if stopped by signal - set shell variable $? to exit status of waited for command plus value of 128
+              }
+              if(!WIFSIGNALED(childStatus)){
+                printf("notsignaled!\n");
+                exit_status_last_foreground_cmd = WEXITSTATUS(childStatus); // if not stopped by signal - set shell variable $? to exit status of waited for fg command
+              }
+               printf("child signalled is:%d\n", WTERMSIG(childStatus));                                                
+            //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
+            break;
+            }
       
       }
      //***********END BLOCK FOR EXECUTING A NON-BUILT IN PROGRAM*******************************
@@ -592,7 +596,7 @@ expand(char const *word)
         build_str("", NULL);
       }else {
         char pid_string_bg[100];
-        sprintf(pid_string_bg, "%jd\n", (intmax_t) PID_most_recent_background_process);
+        sprintf(pid_string_bg, "%jd", (intmax_t) PID_most_recent_background_process);
         build_str(pid_string_bg, NULL);
       }
     }
@@ -600,7 +604,7 @@ expand(char const *word)
       // REFERENCE https://edstem.org/us/courses/38065/discussion/3028257 - using printf with types that lack format specifiers
       pid_t mypid = getpid();  //ref canvas exp process concepts & states
       char pid_string[100];
-      sprintf(pid_string, "%jd\n", (intmax_t) mypid); //https://linux.die.net/man/3/sprintf  ref ED discussion above this is type conversion 
+      sprintf(pid_string, "%jd", (intmax_t) mypid); //https://linux.die.net/man/3/sprintf  ref ED discussion above this is type conversion 
       //build_str("<PID>", NULL);
       build_str(pid_string, NULL);
       //printf("%s\n", pid_string);
@@ -615,7 +619,7 @@ expand(char const *word)
         build_str("0",NULL);
       } else {
         char string_last_exit_status_fg[100];
-        sprintf(string_last_exit_status_fg, "%jd\n", (intmax_t) exit_status_last_foreground_cmd);
+        sprintf(string_last_exit_status_fg, "%d", exit_status_last_foreground_cmd);
         build_str(string_last_exit_status_fg, NULL);
       }
    
