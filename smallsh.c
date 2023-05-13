@@ -364,10 +364,10 @@ prompt:
             }     
             i++; 
           }
-        //  else if ((strcmp(words[i], "&") == 0) && (i == (nwords-1))){
+          else if ((strcmp(words[i], "&") == 0) && (i == (nwords-1))){
            //   printf("background operator is last word - child!\n");
               //run_in_background = true;
-         // }
+          }
           else {
             
             argv_for_execvp[i] = words[i];  // if not redirection or filename after, put that in the array of arguments for commands and command itself is testargv[0]
