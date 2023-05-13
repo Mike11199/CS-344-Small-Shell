@@ -219,14 +219,14 @@ prompt:
      
       int childStatus;
       pid_t spawnPid;
-      char *argv_test[] = {"ls", "-al", NULL};
+     // char *argv_test[] = {"ls", "-al", NULL};
       char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
       bool redirect_input = false;
       bool redirect_output_append = false;
       bool redirect_output_truncate = false;
       char * redirect_file_name = NULL;
-      int out_target;  //output file for redirection file descriptor
-      int in_target; //input file to replace stdin                       
+    ///  int out_target;  //output file for redirection file descriptor
+     // int in_target; //input file to replace stdin                       
       bool run_in_background = false;
       pid_t spawnPid_fg;
       pid_t spawnPid_bg;
@@ -423,14 +423,17 @@ prompt:
            else{
           
                //PERFORM BLOCKING WAIT TO RUN IN FOREGREOUND
+              //do {
               spawnPid_fg = waitpid(spawnPid, &childStatus, WUNTRACED);
-          
+            //  } while (!WIFEXITED(childStatus) && !WIFSIGNALED(childStatus));
+
+
               //if not in background and stopped - send signal to continue
               if (WIFSTOPPED(childStatus)) {
                 //https://man7.org/linux/man-pages/man2/kill.2.htmlC
                 //errno = 0;
-                printf("stopped\n");
-                fprintf(stderr, "signaled stopped!!\n"); 
+              //  printf("stopped\n");
+               // fprintf(stderr, "signaled stopped!!\n"); 
                 //fprintf(stderr, "Child process %jd stopped - parent. Continuing. \n", (intmax_t) spawnPid_fg);
                 kill(spawnPid_fg, SIGCONT); 
                 PID_most_recent_background_process = spawnPid_fg; // set $! to pid as if was a background command
@@ -439,15 +442,15 @@ prompt:
               if(WIFSIGNALED(childStatus)) {
               // fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) spawnPid, WEXITSTATUS(childStatus));
                // fprintf(stderr, "signaled!!%i\n", WTERMSIG(childStatus));
-                printf("signaled!\n");
-                printf("child terminated due to signal: %d\n", WTERMSIG(childStatus));
+              //printf("signaled!\n");
+             // printf("child terminated due to signal: %d\n", WTERMSIG(childStatus));
                 exit_status_last_foreground_cmd = (WTERMSIG(childStatus)+128);   // if stopped by signal - set shell variable $? to exit status of waited for command plus value of 128
               }
               if(!WIFSIGNALED(childStatus)){
-                printf("notsignaled!\n");
+              //  printf("notsignaled!\n");
                 exit_status_last_foreground_cmd = WEXITSTATUS(childStatus); // if not stopped by signal - set shell variable $? to exit status of waited for fg command
               }
-               printf("child signalled is:%d\n", WTERMSIG(childStatus));                                                
+             //  printf("child signalled is:%d\n", WTERMSIG(childStatus));                                                
             //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
             break;
             }
