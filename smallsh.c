@@ -78,13 +78,13 @@ prompt:
     //this is only possible if the call was done using WUNTRACED or when the child is being traced (see ptrace(2)).
 
     while ((child_process = waitpid(0, &bg_child_status, WUNTRACED | WNOHANG)) > 0){  //ref pg 551 options can be or'd together
-        if(WIFEXITED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Exit status %d. \n", (intmax_t) child_process, WEXITSTATUS(bg_child_status)); //exit status
-        else if(WIFSIGNALED(bg_child_status)) fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) child_process, WTERMSIG(bg_child_status)); //signal #
+        if(WIFEXITED(bg_child_status)) fprintf(stderr, "Child process %jd done. Exit status %d.\n", (intmax_t) child_process, WEXITSTATUS(bg_child_status)); //exit status
+        else if(WIFSIGNALED(bg_child_status)) fprintf(stderr, "Child process %jd done. Signaled %d.\n", (intmax_t) child_process, WTERMSIG(bg_child_status)); //signal #
        
         //need WUNTRACEd to detect stopped processes!!!
         else if (WIFSTOPPED(bg_child_status)) {
             //https://man7.org/linux/man-pages/man2/kill.2.htmlC
-            fprintf(stderr, "Child process %jd stopped. Continuing. \n", (intmax_t) child_process);
+            fprintf(stderr, "Child process %jd stopped. Continuing.\n", (intmax_t) child_process);
             kill(child_process, SIGCONT); 
         }
 
@@ -116,24 +116,22 @@ prompt:
       if (prompt != NULL) printf("%s", prompt);  // print PS1
       else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
       //    char *expanded_prompt = expand(prompt);
-    }
+      }
 
     
       // while (!sig_int_received && ) {
       ssize_t line_len = getline(&line, &n, input);
       //if (line_len < 0) err(1, "%s", input_fn);
-      
+      if (feof(input)) {
+          if (ferror(input)) err(1, "read error"); // reference own work on b64 assignment
+          else exit(0);                          
+          }
+ 
       //THIS ALLOWS US TO RESTART IF WE SEND SIGINT WHILE IN INTERACTIVE MODE
       if (input == stdin) {
           
         //printf("stdin\n");
-      if (feof(input) && line_len != 1) {
-          if (ferror(input)) err(1, "read error"); // reference own work on b64 assignment
-          else{
-          //printf("end of stdin, exiting!\n");
-            return 0;
-          }                        
-        }
+
         if (line_len < 0) {
             clearerr(stdin);
             printf("\n");
@@ -328,8 +326,8 @@ prompt:
           }
           else if (strcmp(words[i], ">") == 0){
            // printf("open specified file for writing on STDOUT - possibly only in child later! - TRUNCATE MODE\n");
-            if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
-            redirect_output_truncate = true;
+            //if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
+           // redirect_output_truncate = true;
             if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
             redirect_file_name = words[i+1];
             int out_target = open(redirect_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0777);  //https://linux.die.net/man/3/open
@@ -349,7 +347,7 @@ prompt:
           }
           else if (strcmp(words[i], ">>") == 0){
            // printf("open specified file for writing on STDIN - possibly only in child later! - APPEND MODE\n");
-            if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
+           // if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
             if ( ( i+1) >= nwords ) errx(1,"redirection with no file name after!\n");
             redirect_file_name = words[i+1];
             int out_target = open(redirect_file_name, O_WRONLY | O_CREAT | O_APPEND, 0777);  //https://linux.die.net/man/3/open
@@ -366,10 +364,10 @@ prompt:
             }     
             i++; 
           }
-          else if ((strcmp(words[i], "&") == 0) && (i == (nwords-1))){
+        //  else if ((strcmp(words[i], "&") == 0) && (i == (nwords-1))){
            //   printf("background operator is last word - child!\n");
               //run_in_background = true;
-          }
+         // }
           else {
             
             argv_for_execvp[i] = words[i];  // if not redirection or filename after, put that in the array of arguments for commands and command itself is testargv[0]
