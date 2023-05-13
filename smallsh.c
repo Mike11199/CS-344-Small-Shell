@@ -132,7 +132,7 @@ prompt:
           }
       }
       else {
-          if (line_len <0) err(1, "%s", input_fn);
+          if (line_len < 0) err(1, "%s", input_fn);
       }
 
       //if (line_len == 0) goto prompt;
