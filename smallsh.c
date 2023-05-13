@@ -88,6 +88,8 @@ prompt:
             kill(child_process, SIGCONT); 
         }
 
+
+
     };  //ref programming interface pg 544 - if 0 wait for any child in smae process group as the caller
    // printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
    //********************END CHECKING BACKGROUND PROCESSES **********************************************************
@@ -454,6 +456,7 @@ prompt:
             //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
             break;
             }
+
       
       }
      //***********END BLOCK FOR EXECUTING A NON-BUILT IN PROGRAM*******************************
