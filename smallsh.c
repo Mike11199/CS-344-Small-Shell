@@ -95,7 +95,7 @@ prompt:
    //********************END CHECKING BACKGROUND PROCESSES **********************************************************
      
  
-     struct sigaction SIGINT_action = {0}, ignore_action = {0}, old_SIGINT, old_SIGTSTP;
+    struct sigaction SIGINT_action = {0}, ignore_action = {0}, old_SIGINT ={0}, old_SIGTSTP={0};
 
     //INTERACTIVE MODE
     if (input == stdin) {
@@ -125,7 +125,16 @@ prompt:
       
       //THIS ALLOWS US TO RESTART IF WE SEND SIGINT WHILE IN INTERACTIVE MODE
       if (input == stdin) {
-          if (line_len < 0) {
+          
+        //printf("stdin\n");
+      if (feof(input) && line_len != 1) {
+          if (ferror(input)) err(1, "read error"); // reference own work on b64 assignment
+          else{
+          //printf("end of stdin, exiting!\n");
+            return 0;
+          }                        
+        }
+        if (line_len < 0) {
             clearerr(stdin);
             printf("\n");
             goto prompt;
@@ -402,7 +411,12 @@ prompt:
         // execv(argv_test[0], argv_test);
         // printf("did we make it here?\n");   //NEVER WORKS AS CHILD IS REPLACED BY EXECVP - NORMAL
 
-        perror("error with execvp in child\n!");
+        //perror("error with execvp in child\n!");
+        char exit_msg[100];
+        sprintf(exit_msg, "smallsh: %s", argv_for_execvp[0]);  //doing this to match os1 output for sample program
+       // printf("smallsh: %s", argv_for_execvp[0]);
+        perror(exit_msg);
+
         exit(2);
         break;
       
