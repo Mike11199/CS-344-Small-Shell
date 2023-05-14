@@ -450,7 +450,7 @@ prompt:
                 //errno = 0;
               //  printf("stopped\n");
                // fprintf(stderr, "signaled stopped!!\n"); 
-                //fprintf(stderr, "Child process %jd stopped - parent. Continuing. \n", (intmax_t) spawnPid_fg);
+                fprintf(stderr, "Child process %jd stopped. Continuing.\n", (intmax_t) spawnPid_fg);
                 kill(spawnPid_fg, SIGCONT); 
                 PID_most_recent_background_process = spawnPid_fg; // set $! to pid as if was a background command
               }
