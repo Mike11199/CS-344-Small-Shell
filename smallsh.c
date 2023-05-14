@@ -113,7 +113,8 @@ prompt:
       sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP);  // this so ctrl + z does nothing; have to do this and not above line or infinite getline loop 
 
       char *prompt = getenv("PS1");
-      if (prompt != NULL) printf("%s", prompt);  // print PS1
+      //if (prompt != NULL) printf("%s", prompt);  // print PS1
+      if (prompt != NULL) fprintf(stderr, "%s", prompt);                                                 
       else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
       //    char *expanded_prompt = expand(prompt);
       }
@@ -134,7 +135,8 @@ prompt:
 
         if (line_len < 0) {
             clearerr(stdin);
-            printf("\n");
+            //printf("\n");
+            fprintf(stderr,"\n");
             goto prompt;
           }
       }
