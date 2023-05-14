@@ -1,7 +1,0 @@
-echo never
-echo going
-echo to
-echo give
-echo you
-echo up
-

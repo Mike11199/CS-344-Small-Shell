@@ -7,11 +7,11 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <string.h>
-#include <stdint.h> // reference https://edstem.org/us/courses/38065/discussion/3028257
-#include <sys/wait.h> //reference Exploration - Process API - Monitoring Child Processes - waitpid       
-#include <stdbool.h> // include otherwise error on bool type
+#include <stdint.h>   // reference https://edstem.org/us/courses/38065/discussion/3028257
+#include <sys/wait.h> // reference Exploration - Process API - Monitoring Child Processes - waitpid       
+#include <stdbool.h>  // include otherwise error on bool type
 #include <limits.h>   // ref https://learn.microsoft.com/en-us/cpp/c-language/cpp-integer-limits?view=msvc-170        
-#include <fcntl.h> // for O_WRONLY, etc. reference canvas exploration - processes and IO
+#include <fcntl.h>    // for O_WRONLY, etc. reference canvas exploration - processes and IO
 
 #ifndef MAX_WORDS
 #define MAX_WORDS 512
@@ -26,26 +26,15 @@ pid_t PID_most_recent_background_process = INT_MIN; //shell variable for $!
 int exit_status_last_foreground_cmd = INT_MIN; //shell variable for $?
 bool sig_int_received = false;
 
+//reference instructions for smallsh for SIGINT (ctrl-c);
 void sigint_handler(int sig) {
-   
-  //THIS DIDN'T WORK - CAUSED CTRL C TO HANG ON GET LINE UNTIL OTHER INPUT
-  // printf("\n");
-   // errno = 0; //reset error
-  //  clearerr(stdin); //clear stdin
-   // sig_int_received = true;       
-   // clearerr(input);
-    //goto prompt;   
-}; //reference instructions for smallsh for SIGINT (ctrl-c);
+}; 
 
 int main(int argc, char *argv[])
 {
  
   input = stdin;
- //FILE *input = stdin;
- char *input_fn = "(stdin)";
-
-//restart: 
- 
+  char *input_fn = "(stdin)";
  
 
   // INTERACTIVE MODE - if one argument, read from STDIN
@@ -61,14 +50,11 @@ int main(int argc, char *argv[])
   char *line = NULL;
   size_t n = 0;
 
-
-
 prompt:
   for (;;) {
   
  
     //*********************************************CHECK BACKGROUND PROCESSES ON EACH LOOP HERE******************
-    /* TODO: Manage background processes */
     // reference PAGE 544 of Linux Programming Interface michael kerrisk chapter 26 - waitpid()
     pid_t child_process;
     int bg_child_status;
@@ -77,6 +63,7 @@ prompt:
     // ref linux.die.net/man/2/waitpid/
     //WIFSTOPPED(status) returns true if the child process was stopped by delivery of a signal; 
     //this is only possible if the call was done using WUNTRACED or when the child is being traced (see ptrace(2)).
+    //ref programming interface pg 544 - if 0 wait for any child in same process group as the caller
 
     while ((child_process = waitpid(0, &bg_child_status, WUNTRACED | WNOHANG)) > 0){  //ref pg 551 options can be or'd together
         if(WIFEXITED(bg_child_status)) fprintf(stderr, "Child process %jd done. Exit status %d.\n", (intmax_t) child_process, WEXITSTATUS(bg_child_status)); //exit status
@@ -88,38 +75,20 @@ prompt:
             fprintf(stderr, "Child process %jd stopped. Continuing.\n", (intmax_t) child_process);
             kill(child_process, SIGCONT); 
         }
-
-
-
-    };  //ref programming interface pg 544 - if 0 wait for any child in smae process group as the caller
-   // printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
+    };     // printf("%d\n", child_process);  // this should be -1 if no child processes issame process group reference https://linux.die.net/man/2/waitpid
    //********************END CHECKING BACKGROUND PROCESSES **********************************************************
      
  
     struct sigaction SIGINT_action = {0}, ignore_action = {0}, old_SIGINT ={0}, old_SIGTSTP={0};
 
-    //attempt to fix test breaking in testscript #1
-//    SIGINT_action.sa_handler = sigint_handler; 
-//    ignore_action.sa_handler = SIG_IGN; 
-//    sigaction(SIGINT, &SIGINT_action, &old_SIGINT); 
-//    sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP); 
- 
-
     //INTERACTIVE MODE
     if (input == stdin) {
-      /* COMPLETED TODO: prompt  */
-
-
-   
-
       // Reference Canvas exploration - Signal Handling API - Example - Custom Handler for SIGINT for next 5 lines of code to ignore SIGINT
       // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
       SIGINT_action.sa_handler = sigint_handler; //this is func that does nothing above
-      //sigfillset(&SIGINT_action.sa_mask);
-      //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
-     
       ignore_action.sa_handler = SIG_IGN; //reference exploration - canvas signal handling api
-      
+    
+
       if (first_run){
       sigaction(SIGINT, &SIGINT_action, &old_SIGINT);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
       sigaction(SIGTSTP, &ignore_action, &old_SIGTSTP);  // this so ctrl + z does nothing
@@ -127,91 +96,36 @@ prompt:
       sigaction(SIGINT, &SIGINT_action, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
       sigaction(SIGTSTP, &ignore_action, NULL);  // this so ctrl + z does nothing
       } 
-      //sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP);  // this so ctrl + z does nothing; have to do this and not above line or infinite getline loop 
 
-
-      //sigaction(SIGINT, &ignore_action, &old_SIGINT);
+      // PRINT PROMPT FROM PS1 VARIABLE - or print an empty string
       char *prompt = getenv("PS1");
-      //if (prompt != NULL) printf("%s", prompt);  // print PS1
-//reset:
       if (prompt != NULL) fprintf(stderr, "%s", prompt);                                                 
-      else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
-      //    char *expanded_prompt = expand(prompt);
+      else printf("");  // expand empty string if NULL - ref 2. expansion in instructions
       }
 
-
-     //  while ( ) {
-      //sigaction(SIGINT, &ignore_action, NULL); 
       ssize_t line_len = getline(&line, &n, input);
       ssize_t nwords;
-    //   }
-      //sigaction(SIGINT, &SIGINT_action, NULL);
-      //if (line_len < 0) err(1, "%s", input_fn);
-      //
-      //
-      //
-//reset2:      
+ 
       if (feof(input)) {
           if (ferror(input)) err(1, "read error"); // reference own work on b64 assignment
           else exit(0);                          
           }
  
       //THIS ALLOWS US TO RESTART IF WE SEND SIGINT WHILE IN INTERACTIVE MODE
-      if (input == stdin) {
-          
-        //printf("stdin\n");
-      
-
+      if (input == stdin) {                       
         if (line_len < 0) {
-            clearerr(stdin);  //this prevents infinite loop for some reason
-            //printf("\n");
-            
-         //   if (line == NULL){
-          //    fprintf(stderr,"reading input\n");
-       //     }
-
-
-        // fprintf(stderr,"nwords is %zd\n",nwords);
-         //   fprintf(stderr,"received ctrl +D !");
-            fprintf(stderr,"\n");
-            //exit(0);
-            //fprintf(stderr,"test\n");
-            //printf("test");
-            //fprintf(stderr,"test2");
-          //  fprintf(stderr, "n is %zd\n", n);
-       //     fprintf(stderr, "line is %s\n", line);
-         //   fprintf(stderr,"The line length from getline is %zd\n", line_len);
-        //reset signal for test to respond to input when not reading - e.g press ctrl +c when fg command 'sleep 3000'
-        //sigaction(SIGINT, &old_SIGINT, NULL);    
-        //reset signal not for test but to respond to ctrl +z when not reading to mirror sample program 
-        // e.g - respond to signal ctrl + z when fg command 'sleep 3000' sent
-        //sigaction(SIGTSTP, &old_SIGTSTP, NULL);
-
+             clearerr(stdin);  //this prevents infinite loop for some reason
+             fprintf(stderr,"\n");
              goto prompt;
-             //goto reset2;
-            //continue;
           }
       }
       else {
           if (line_len < 0) err(1, "%s", input_fn);
       }
-
-      //if (line_len == 0) goto prompt;
- //   }
-
-    
+       
     // #2 word splitting - given function by professor - completed
     nwords = wordsplit(line);
     
-
-    //if (nwords ==2) sigaction(SIGINT, &ignore_action, NULL);
- // if (sig_int_received) {
-//        sig_int_received = false;
-//        clearerr(input);
- //      goto prompt;
- //  }
-
-
 
     // ** BLOCK TO EXPAND ALL WORDS - 2**************
     for (size_t i = 0; i < nwords; ++i) {
@@ -222,15 +136,6 @@ prompt:
      // fprintf(stderr, "%s\n", words[i]);
     }   
     // ** END BLOCK TO EXPAND ALL WORD***********
-    
-
-
-
-    //printf("print words again test");
-  
-      
-
-     // fprintf(stderr, "%s\n", words[i]);
 
 
       // ***********BLOCK FOR IMPLEMENTING CD FUNCTION***************
@@ -257,10 +162,9 @@ prompt:
       
       //***BLOCK FOR IMPLEMENTING BUILT IN EXIT FUNCTION************
       if (nwords > 0 && strcmp(words[0], "exit") == 0){
-        if (nwords > 2) errx(1, "too many arguments\n");
-        if (nwords ==1) {
-          
-          if (exit_status_last_foreground_cmd == INT_MIN) {
+          if (nwords > 2) errx(1, "too many arguments\n");
+          if (nwords ==1) {         
+             if (exit_status_last_foreground_cmd == INT_MIN) {
              exit(0);
           }
           else {
@@ -272,45 +176,35 @@ prompt:
                if (!isdigit(words[1][i])) errx(1,"error gave exit function a non-digit!\n");
             }
             exit(atoi(words[1]));
-        }
-        
+        }      
       }
       //***********END BLOCK IMPLEMENTING EXIT FUNCTION*************
 
 
       // ***** BLOCK FOR EXECUTING NEW PROCESS THAT IS NOT A BUILD IN PROGRAM ****************
-     // reference Canvas Exploration - Process API - Executing a New Program
      
+      // reference Canvas Exploration - Process API - Executing a New Program     
       int childStatus;
       pid_t spawnPid;
-     // char *argv_test[] = {"ls", "-al", NULL};
       char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
       bool redirect_input = false;
-      //bool redirect_output_append = false;
-      //bool redirect_output_truncate = false;
-      char * redirect_file_name = NULL;
-    ///  int out_target;  //output file for redirection file descriptor
-     // int in_target; //input file to replace stdin                       
+      char * redirect_file_name = NULL;           
       bool run_in_background = false;
       pid_t spawnPid_fg;
       pid_t spawnPid_bg;
 
       //these two lines for resetting signals in child
-       struct sigaction default_action = {0}, SIGSTP_action={0};
-       default_action.sa_handler = SIG_DFL; //this is func that does nothing above 
-
-       //struct sigaction reset_action = {0};
-       //reset_action.sa_handler = SIG_DFL;
+      struct sigaction default_action = {0}, SIGSTP_action={0};
+      default_action.sa_handler = SIG_DFL; //this is func that does nothing above 
 
       if (nwords>0){
+        //create a new child process with fork 
         spawnPid = fork();
       }
       else {
        goto prompt;
       }
  
-            //char *testargv[] = {words[0], "-al", NULL};
-
       switch(spawnPid){
 
       // if process failed
@@ -319,37 +213,10 @@ prompt:
         exit(1);
         break;
 
-
       // in the child process
       case 0:
-       // printf("in child process\n");
-       // printf("CHILD(%d) running command\n", getpid());
-       // char *testargv[nwords]; 
-            
-        //reference exploration canvas - signal handling api - sa handler - reset signals for child pocess - 5 pts
-        //signal(SIGINT, SIG_DFL);
-       // signal(SIGTSTP, SIG_DFL);
-       //reference man7.org/linux/man-pages/man2/sigaction.2.html
-   // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
-
-        //reset signal for test to respond to input when not reading - e.g press ctrl +c when fg command 'sleep 3000'
         sigaction(SIGINT, &old_SIGINT, NULL);    
-        //reset signal not for test but to respond to ctrl +z when not reading to mirror sample program 
-        // e.g - respond to signal ctrl + z when fg command 'sleep 3000' sent
-       // printf("reset SIGTSTP?\n");
         sigaction(SIGTSTP, &old_SIGTSTP, NULL);
-        //sigaction(SIGTSTP, &default_action, NULL);  
-        //struct sigaction SIGINT_action = {0};
-        //SIGINT_action.sa_handler = sigint_handler; 
-        //SIGSTP_action.sa_flags = SA_RESTART;
-
-        //SIGSTP_action.sa_handler = SIG_DFL; //this is func that does nothing above
-      //sigfillset(&SIGINT_action.sa_mask);
-      //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error          
-       // SIGINT_action.sa_handler = sigint_handler;
-
-        //sigaction(SIGTSTP, &old_SIGTSTP, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
-        //sigaction(SIGTSTP, &SIGINT_action, NULL);        
 
         for (size_t i=0; i < (nwords+1); i++) {
             argv_for_execvp[i] = NULL;
@@ -358,15 +225,10 @@ prompt:
         //Need to construct array of arguments for the non-built in command and remove any redirection operators and their associated filename args
         for (size_t i=0; i < nwords; i++) {
 
-       //   printf("number of words is %zu\n", nwords);
-       //   printf("i is %zu\n", i);
-       //   printf("word from word array is %s\n", words[i]);
-
+          // If a word is "<", then redirect STDIN to instead read from that file
           if (strcmp(words[i], "<") == 0){
-           // printf("%zu", nwords);
             if (redirect_input) errx(1,"multiple redirects of same type\n");
             redirect_input = true;
-            //printf("open specified file for reading on STDIN!\n");
             if ( (i+1) >= nwords ) errx(1,"redirection with no file name after!\n"); 
             redirect_file_name = words[i+1];
             int in_target = open(redirect_file_name, O_RDONLY);  //https://linux.die.net/man/3/open
@@ -380,10 +242,10 @@ prompt:
               perror("error with dup2 redirecting stdin!\n");
               exit(2);
             }      
-
             i++;
-
           }
+          
+          // If a word is ">", then redirect STDOUT to instead write to that file in TRUNCATE mode
           else if (strcmp(words[i], ">") == 0){
            // printf("open specified file for writing on STDOUT - possibly only in child later! - TRUNCATE MODE\n");
             //if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
@@ -405,6 +267,8 @@ prompt:
             i++;
  
           }
+
+          // If a word is ">>", then redirect STDOUT to instead write to that file in APPEND mode
           else if (strcmp(words[i], ">>") == 0){
            // printf("open specified file for writing on STDIN - possibly only in child later! - APPEND MODE\n");
            // if (redirect_output_truncate || redirect_output_append) errx(1, "multiple redirects of same type\n");
@@ -425,56 +289,20 @@ prompt:
             i++; 
           }
           else if ((strcmp(words[i], "&") == 0) && (i == (nwords-1))){
-           //   printf("background operator is last word - child!\n");
-              //run_in_background = true;
           }
-          else {
-            
-            argv_for_execvp[i] = words[i];  // if not redirection or filename after, put that in the array of arguments for commands and command itself is testargv[0]
-         //   printf("word inserted into arguments array is %s\n", argv_for_execvp[i]); 
-            
+          else {   
+            // if not redirection or filename after, put that in the array of arguments for commands
+            // command itself is testargv[0]
+            argv_for_execvp[i] = words[i];  
+            // printf("word inserted into arguments array is %s\n", argv_for_execvp[i]);            
           }
          }
 
-        //***** TEST TO PRINT OUT ARGUMENTS OF THE ARRAY WHICH SHOULD BE NULL TERMINATED************
-//         printf("test - printing out arguments array for execvp\n");
-         
-//         for (size_t i=0; i < (nwords+1); i++) {
-//            if (argv_for_execvp[i] == NULL){
-//              printf("NULL\n");
-//            }
-//            else {
-//              printf("%s\n", argv_for_execvp[i]);
-//            }
-//        }
-        ///**************END TEST*********************************************************************
-
-        // argv_for_execvp[nwords+1] = NULL;
-
-        // printf("number of words is %zu\n", nwords);
-        // testargv[i] = words[i];
-        // printf("%s", words[i]);
-        // printf("%s", testargv[i]); 
-        // printf("printing commands for execvp\n");
-        // char *argv_test[] = {"ls", "-al", NULL};
-        // execvp(argv_for_execvp[0], argv_for_execvp);  //run program with array for argumnets where we removed redirections and associated files
-        
-        // printf("%s", argv_test[0]);
-        // printf("%s", *argv_test);
-        
-
-        // execvp(argv_test[0], argv_test);       //this WORKS TO RUN HARDCODED LS COMMAND!!!!!
-        execvp(argv_for_execvp[0], argv_for_execvp);                                       
-        
-        // execv(argv_test[0], argv_test);
-        // printf("did we make it here?\n");   //NEVER WORKS AS CHILD IS REPLACED BY EXECVP - NORMAL
-
-        //perror("error with execvp in child\n!");
+        execvp(argv_for_execvp[0], argv_for_execvp); //Run built-in command, searching in path variable if needed      
+        //BELOW WILL ONLY RUN IF AN ERROR OCCURS, AS THE EXECVP PROGRAM REPLACES THE CHILD PROCESS
         char exit_msg[100];
         sprintf(exit_msg, "smallsh: %s", argv_for_execvp[0]);  //doing this to match os1 output for sample program
-       // printf("smallsh: %s", argv_for_execvp[0]);
         perror(exit_msg);
-
         exit(2);
         break;
       
@@ -540,12 +368,6 @@ prompt:
       
       }
      //***********END BLOCK FOR EXECUTING A NON-BUILT IN PROGRAM*******************************
-
-
-    
-
-
-
    
   } //end infinite loop
 } // end main function
@@ -592,7 +414,7 @@ size_t wordsplit(char const *line) {
  * start and end pointers to the start and end of the parameter
  * token.
  */
-//reference ed.stem.org/us/courses/38065/discussion3119200
+// reference ed.stem.org/us/courses/38065/discussion3119200
 // bug in testscript test 6 professor provided new function to use - copied straight from ED discussion
 char
 param_scan(char const *word, char const **start, char const **end)
