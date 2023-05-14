@@ -571,35 +571,73 @@ size_t wordsplit(char const *line) {
  * start and end pointers to the start and end of the parameter
  * token.
  */
+//reference ed.stem.org/us/courses/38065/discussion3119200
+// bug in testscript test 6 professor provided new function to use - copied straight from ED discussion
 char
-param_scan(char const *word, char **start, char **end)
+param_scan(char const *word, char const **start, char const **end)
 {
-  static char *prev;
+  static char const *prev;
   if (!word) word = prev;
   
   char ret = 0;
-  *start = NULL;
-  *end = NULL;
-  char *s = strchr(word, '$');
-  if (s) {
-    char *c = strchr("$!?", s[1]);
-    if (c) {
-      ret = *c;
+  *start = 0;
+  *end = 0;
+  for (char const *s = word; *s && !ret; ++s) {
+    s = strchr(s, '$');
+    if (!s) break;
+    switch (s[1]) {
+    case '$':
+    case '!':
+    case '?':
+      ret = s[1];
       *start = s;
       *end = s + 2;
-    }
-    else if (s[1] == '{') {
+      break;
+    case '{':;
       char *e = strchr(s + 2, '}');
       if (e) {
-        ret = '{';
+        ret = s[1];
         *start = s;
         *end = e + 1;
       }
+      break;
     }
   }
   prev = *end;
   return ret;
 }
+
+//THIS IS THE OLD VERSION OF THE FUNCTION FROM THE SKELETON CODE THAT CAUSES A BUG IN TEST 6
+//char
+//param_scan(const char *word, char **start, char **end)
+//{
+//  static char *prev;
+//  if (!word) word = prev;
+//  
+//  char ret = 0;
+//  *start = NULL;
+//  *end = NULL;
+//  //char *s = strchr(word, '$');
+//  //
+//  for (char const *s = word; *s && !ret; ++s) {
+//  if (s) {
+//    char *c = strchr("$!?", s[1]);
+//    if (c) {
+//      ret = *c;
+//      *start = s;
+//      *end = s + 2;
+//      break;
+//    }
+//    else if (s[1] == '{') {
+//     char *e = strchr(s + 2, '}');
+//      if (e) {
+//        ret = '{';
+//        *start = s;
+//        *end = e + 1;
+//      }
+//      break;
+//    }
+//  }
 
 /* Simple string-builder function. Builds up a base
  * string by appending supplied strings/character ranges
