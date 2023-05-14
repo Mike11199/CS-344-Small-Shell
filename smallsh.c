@@ -122,17 +122,28 @@ prompt:
       sigaction(SIGTSTP, &ignore_action, &old_SIGTSTP);  // this so ctrl + z does nothing
       //sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP);  // this so ctrl + z does nothing; have to do this and not above line or infinite getline loop 
 
+
+      //sigaction(SIGINT, &ignore_action, &old_SIGINT);
       char *prompt = getenv("PS1");
       //if (prompt != NULL) printf("%s", prompt);  // print PS1
+reset:
       if (prompt != NULL) fprintf(stderr, "%s", prompt);                                                 
       else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
       //    char *expanded_prompt = expand(prompt);
       }
 
-    
-      // while (!sig_int_received && ) {
+
+     //  while ( ) {
+      //sigaction(SIGINT, &ignore_action, NULL); 
       ssize_t line_len = getline(&line, &n, input);
+      ssize_t nwords;
+    //   }
+      //sigaction(SIGINT, &SIGINT_action, NULL);
       //if (line_len < 0) err(1, "%s", input_fn);
+      //
+      //
+      //
+reset2:      
       if (feof(input)) {
           if (ferror(input)) err(1, "read error"); // reference own work on b64 assignment
           else exit(0);                          
@@ -142,12 +153,30 @@ prompt:
       if (input == stdin) {
           
         //printf("stdin\n");
+      
 
         if (line_len < 0) {
-            clearerr(stdin);
+            clearerr(stdin);  //this prevents infinite loop for some reason
             //printf("\n");
+            
+         //   if (line == NULL){
+          //    fprintf(stderr,"reading input\n");
+       //     }
+
+
+        // fprintf(stderr,"nwords is %zd\n",nwords);
+         //   fprintf(stderr,"received ctrl +D !");
             fprintf(stderr,"\n");
-            goto prompt;
+            //exit(0);
+            //fprintf(stderr,"test\n");
+            //printf("test");
+            //fprintf(stderr,"test2");
+          //  fprintf(stderr, "n is %zd\n", n);
+       //     fprintf(stderr, "line is %s\n", line);
+         //   fprintf(stderr,"The line length from getline is %zd\n", line_len);
+             goto prompt;
+             //goto reset2;
+            //continue;
           }
       }
       else {
@@ -159,9 +188,10 @@ prompt:
 
     
     // #2 word splitting - given function by professor - completed
-    size_t nwords = wordsplit(line);
+    nwords = wordsplit(line);
     
 
+    //if (nwords ==2) sigaction(SIGINT, &ignore_action, NULL);
  // if (sig_int_received) {
 //        sig_int_received = false;
 //        clearerr(input);
@@ -434,6 +464,10 @@ prompt:
       default:
            //  printf("in parent process: %d\n", getpid());
            //wait for child to TERMINATE with a blocking wait - test
+
+           sigaction(SIGINT, &ignore_action, NULL);
+ 
+
            if ((strcmp(words[nwords-1], "&") == 0)){
               // printf("background operator is last word - parent!\n");
               run_in_background = true;
@@ -478,6 +512,7 @@ prompt:
               }
              //  printf("child signalled is:%d\n", WTERMSIG(childStatus));                                                
             //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
+            sigaction(SIGINT, &old_SIGINT, NULL);
             break;
             }
 
