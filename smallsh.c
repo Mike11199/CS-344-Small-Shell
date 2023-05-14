@@ -72,6 +72,7 @@ prompt:
     // reference PAGE 544 of Linux Programming Interface michael kerrisk chapter 26 - waitpid()
     pid_t child_process;
     int bg_child_status;
+    bool first_run = true;
 
     // ref linux.die.net/man/2/waitpid/
     //WIFSTOPPED(status) returns true if the child process was stopped by delivery of a signal; 
@@ -118,15 +119,21 @@ prompt:
       //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error
      
       ignore_action.sa_handler = SIG_IGN; //reference exploration - canvas signal handling api
+      
+      if (first_run){
       sigaction(SIGINT, &SIGINT_action, &old_SIGINT);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
       sigaction(SIGTSTP, &ignore_action, &old_SIGTSTP);  // this so ctrl + z does nothing
+      } else {
+      sigaction(SIGINT, &SIGINT_action, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
+      sigaction(SIGTSTP, &ignore_action, NULL);  // this so ctrl + z does nothing
+      } 
       //sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP);  // this so ctrl + z does nothing; have to do this and not above line or infinite getline loop 
 
 
       //sigaction(SIGINT, &ignore_action, &old_SIGINT);
       char *prompt = getenv("PS1");
       //if (prompt != NULL) printf("%s", prompt);  // print PS1
-reset:
+//reset:
       if (prompt != NULL) fprintf(stderr, "%s", prompt);                                                 
       else printf("");                           // expand empty string if NULL - ref 2. expansion in instructions
       //    char *expanded_prompt = expand(prompt);
@@ -143,7 +150,7 @@ reset:
       //
       //
       //
-reset2:      
+//reset2:      
       if (feof(input)) {
           if (ferror(input)) err(1, "read error"); // reference own work on b64 assignment
           else exit(0);                          
@@ -174,6 +181,12 @@ reset2:
           //  fprintf(stderr, "n is %zd\n", n);
        //     fprintf(stderr, "line is %s\n", line);
          //   fprintf(stderr,"The line length from getline is %zd\n", line_len);
+        //reset signal for test to respond to input when not reading - e.g press ctrl +c when fg command 'sleep 3000'
+        //sigaction(SIGINT, &old_SIGINT, NULL);    
+        //reset signal not for test but to respond to ctrl +z when not reading to mirror sample program 
+        // e.g - respond to signal ctrl + z when fg command 'sleep 3000' sent
+        //sigaction(SIGTSTP, &old_SIGTSTP, NULL);
+
              goto prompt;
              //goto reset2;
             //continue;
@@ -273,8 +286,8 @@ reset2:
      // char *argv_test[] = {"ls", "-al", NULL};
       char *argv_for_execvp[(nwords+1)]; // +1 as last one has to be NULL
       bool redirect_input = false;
-      bool redirect_output_append = false;
-      bool redirect_output_truncate = false;
+      //bool redirect_output_append = false;
+      //bool redirect_output_truncate = false;
       char * redirect_file_name = NULL;
     ///  int out_target;  //output file for redirection file descriptor
      // int in_target; //input file to replace stdin                       
@@ -319,18 +332,23 @@ reset2:
        //reference man7.org/linux/man-pages/man2/sigaction.2.html
    // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
 
-        sigaction(SIGINT, &old_SIGINT, NULL);   
+        //reset signal for test to respond to input when not reading - e.g press ctrl +c when fg command 'sleep 3000'
+        sigaction(SIGINT, &old_SIGINT, NULL);    
+        //reset signal not for test but to respond to ctrl +z when not reading to mirror sample program 
+        // e.g - respond to signal ctrl + z when fg command 'sleep 3000' sent
+       // printf("reset SIGTSTP?\n");
+        sigaction(SIGTSTP, &old_SIGTSTP, NULL);
         //sigaction(SIGTSTP, &default_action, NULL);  
         //struct sigaction SIGINT_action = {0};
         //SIGINT_action.sa_handler = sigint_handler; 
-      //  SIGSTP_action.sa_flags = SA_RESTART;
+        //SIGSTP_action.sa_flags = SA_RESTART;
 
         //SIGSTP_action.sa_handler = SIG_DFL; //this is func that does nothing above
       //sigfillset(&SIGINT_action.sa_mask);
       //SIGINT_action.sa_flags = SA_RESTART; //reference signal handling api canvas - signals and interrupted functions section to fix getline error          
        // SIGINT_action.sa_handler = sigint_handler;
 
-        sigaction(SIGTSTP, &old_SIGTSTP, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
+        //sigaction(SIGTSTP, &old_SIGTSTP, NULL);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
         //sigaction(SIGTSTP, &SIGINT_action, NULL);        
 
         for (size_t i=0; i < (nwords+1); i++) {
@@ -466,6 +484,7 @@ reset2:
            //wait for child to TERMINATE with a blocking wait - test
 
            sigaction(SIGINT, &ignore_action, NULL);
+           sigaction(SIGTSTP, &SIGINT_action, NULL);
  
 
            if ((strcmp(words[nwords-1], "&") == 0)){
@@ -503,7 +522,7 @@ reset2:
               // fprintf(stderr, "Child process %jd done.  Signaled %d. \n", (intmax_t) spawnPid, WEXITSTATUS(childStatus));
                // fprintf(stderr, "signaled!!%i\n", WTERMSIG(childStatus));
               //printf("signaled!\n");
-             // printf("child terminated due to signal: %d\n", WTERMSIG(childStatus));
+                //printf("child terminated due to signal: %d\n", WTERMSIG(childStatus));
                 exit_status_last_foreground_cmd = (WTERMSIG(childStatus)+128);   // if stopped by signal - set shell variable $? to exit status of waited for command plus value of 128
               }
               if(!WIFSIGNALED(childStatus)){
@@ -513,6 +532,8 @@ reset2:
              //  printf("child signalled is:%d\n", WTERMSIG(childStatus));                                                
             //   printf("PARENT(%d): child(%d) terminated. Exiting\n", getpid(), spawnPid);  //straight from canvas example
             sigaction(SIGINT, &old_SIGINT, NULL);
+            sigaction(SIGTSTP, &old_SIGTSTP, NULL);
+            
             break;
             }
 
@@ -686,7 +707,8 @@ char *
 expand(char const *word)
 {
   char const *pos = word;
-  char *start, *end;
+  char const *start;
+  char const *end;
   char c = param_scan(pos, &start, &end);
   build_str(NULL, NULL);
   build_str(pos, start);
