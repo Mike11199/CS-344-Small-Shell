@@ -97,9 +97,19 @@ prompt:
  
     struct sigaction SIGINT_action = {0}, ignore_action = {0}, old_SIGINT ={0}, old_SIGTSTP={0};
 
+    //attempt to fix test breaking in testscript #1
+//    SIGINT_action.sa_handler = sigint_handler; 
+//    ignore_action.sa_handler = SIG_IGN; 
+//    sigaction(SIGINT, &SIGINT_action, &old_SIGINT); 
+//    sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP); 
+ 
+
     //INTERACTIVE MODE
     if (input == stdin) {
       /* COMPLETED TODO: prompt  */
+
+
+   
 
       // Reference Canvas exploration - Signal Handling API - Example - Custom Handler for SIGINT for next 5 lines of code to ignore SIGINT
       // uses custom sigint_handler from smallsh instructions which does nothing - literally no body of function
@@ -109,8 +119,8 @@ prompt:
      
       ignore_action.sa_handler = SIG_IGN; //reference exploration - canvas signal handling api
       sigaction(SIGINT, &SIGINT_action, &old_SIGINT);   // this so ctrl + c goes to the handler which does nothing - then error by getline handled below
-      //sigaction(SIGTSTP, &ignore_action, &old_SIGTSTP);  // this so ctrl + z does nothing
-      sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP);  // this so ctrl + z does nothing; have to do this and not above line or infinite getline loop 
+      sigaction(SIGTSTP, &ignore_action, &old_SIGTSTP);  // this so ctrl + z does nothing
+      //sigaction(SIGTSTP, &SIGINT_action, &old_SIGTSTP);  // this so ctrl + z does nothing; have to do this and not above line or infinite getline loop 
 
       char *prompt = getenv("PS1");
       //if (prompt != NULL) printf("%s", prompt);  // print PS1
