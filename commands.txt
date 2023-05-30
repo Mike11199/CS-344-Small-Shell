@@ -1,0 +1,87 @@
+echo
+echo Hello! these are commands to be ran by smallsh in non-interactive mode.
+sleep 1
+echo
+echo Smallsh uses the execvp function in to run non-built in commands from its shell.
+echo
+sleep 1
+echo I will now print the processes that are active using the command 'ps -v'
+sleep 1
+echo
+ps -v
+echo
+sleep 2
+echo Running command to showcase parameter expansion from env variable of PWD:
+sleep 1
+echo
+echo ${PWD}
+echo
+sleep 1
+echo Running command 'ls-v' to show the current files in your directory:
+sleep 1
+echo
+ls -v
+echo
+sleep 2
+echo Let me generate 500 random bytes to a file called 500randombytes using input redirection.
+sleep 1
+head -c 500 /dev/urandom > 500randombytes
+sleep 1
+echo
+echo We can see the new file with the 'ls' command
+sleep 2
+echo
+ls -v 
+echo
+sleep 2
+echo Running command 'xxd 500randombytes' to show hexadecimal represenation of file
+sleep 2
+echo
+xxd 500randombytes
+echo
+sleep 3
+echo Let's show how we can run a process in the background.  
+echo
+sleep 1
+echo Running the command 'sleep 100 &'
+sleep 2
+sleep 100 &
+echo
+echo We can see the new bacground process with the 'ps -v' command
+sleep 2
+ps -v
+echo
+sleep 3
+echo The background process ID is: $!
+sleep 1
+echo
+sleep 1
+echo Now let's send SIGTSTP to that process. 
+sleep 1
+echo
+echo We can access the last background process by expanding a local small shell variable.
+echo 
+sleep 4
+echo Running command 'kill -SIGTSTP $!'.  
+sleep 1
+echo
+echo Small shell should stop then continue the process as it monitors stopped background processes.
+echo
+sleep 1 
+kill -SIGTSTP $!
+echo
+sleep 3
+echo Now let's stop the process
+echo
+sleep 1
+echo Running command 'kill -SIGINT $!'
+sleep 1
+kill -SIGINT $!
+echo
+sleep 3
+echo
+echo Thanks for using my program! Goodbye!
+sleep 3
+
+
+
